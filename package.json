@@ -1,0 +1,10 @@
+{
+  "name": "lepko-userscripts",
+  "version": "0.0.1",
+  "license": "MIT",
+  "dependencies": {
+    "eslint": "^3.16.1",
+    "eslint-config-airbnb-base": "^11.1.1",
+    "eslint-plugin-import": "^2.2.0"
+  }
+}
