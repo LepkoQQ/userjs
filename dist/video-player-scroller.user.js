@@ -1,0 +1,1275 @@
+// ==UserScript==
+// @name        Video Player Scroller
+// @namespace   http://lepko.net/
+// @version     3.0.0
+// @run-at      document-start
+// @match       *://*.youtube.com/*
+// @match       *://youtube.googleapis.com/embed/*
+// @match       *://*.vimeo.com/*
+// @match       *://*.twitch.tv/*
+// @exclude     *.js
+// @exclude     *.html
+// @exclude     *.html?*
+// @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.11/moment-timezone-with-data-2010-2020.min.js
+// @grant       GM_xmlhttpRequest
+// @grant       GM_getValue
+// @grant       GM_setValue
+// @grant       unsafeWindow
+// @nocompat    Chrome
+// @connect     api.twitch.tv
+// @connect     googleapis.com
+// ==/UserScript==
+
+/* TODO: Move utils to separate library */
+/* global GM_xmlhttpRequest:false */
+const _ = (function utils() {
+  'use strict';
+
+  return {
+    // DOM
+    get(selector, parent) {
+      if (arguments.length > 1) {
+        return parent && parent.querySelector && parent.querySelector(selector);
+      }
+      return document.querySelector(selector);
+    },
+    all(selector, parent) {
+      if (arguments.length > 1) {
+        return parent && parent.querySelectorAll && parent.querySelectorAll(selector);
+      }
+      return document.querySelectorAll(selector);
+    },
+    getStyle(element, rule) {
+      const val = getComputedStyle(element)[rule];
+      if (val && val.endsWith('px')) {
+        return parseFloat(val);
+      }
+      return val;
+    },
+    observeAddedElements(parent, onElementAdded) {
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              onElementAdded(node);
+            }
+          });
+        });
+      });
+      observer.observe(parent, {
+        childList: true,
+        subtree: true,
+      });
+      return observer;
+    },
+    // TODO: check this out: https://stackoverflow.com/questions/17888039/javascript-efficient-parsing-of-css-selector
+    // TODO: dont name parameters as blankIn
+    create(tagIn, attrs) {
+      let tag = 'div';
+      let id;
+      const classes = new Set();
+      if (tagIn.includes('#') || tagIn.includes('.')) {
+        const parts = _.replaceAll(_.replaceAll(tagIn, '.', '|.'), '#', '|#').split('|');
+        parts.forEach((part) => {
+          if (part[0] === '#') {
+            id = part.substr(1);
+          } else if (part[0] === '.') {
+            classes.add(part.substr(1));
+          } else if (part.length) {
+            tag = part;
+          }
+        });
+      } else {
+        tag = tagIn;
+      }
+      const element = document.createElement(tag);
+      if (id) {
+        element.id = id;
+      }
+      if (classes.size) {
+        element.className = Array.from(classes).join(' ');
+      }
+      if (attrs) {
+        if (typeof attrs === 'string') {
+          element.textContent = attrs;
+        } else {
+          Object.keys(attrs).forEach((key) => {
+            switch (key) {
+              case 'events':
+                Object.keys(attrs[key]).forEach((event) => {
+                  element.addEventListener(event, attrs[key][event]);
+                });
+                break;
+              case 'captureEvents':
+                Object.keys(attrs[key]).forEach((event) => {
+                  element.addEventListener(event, attrs[key][event], true);
+                });
+                break;
+              case 'class':
+                element.className = attrs[key];
+                break;
+              case 'style':
+                element.style.cssText = attrs[key];
+                break;
+              default:
+                element[key] = attrs[key];
+            }
+          });
+        }
+      }
+      return element;
+    },
+    addCSS(css) {
+      const style = _.get('style#ext_css') || document.head.parentNode.insertBefore(_.create('style#ext_css'), document.head.nextSibling);
+      style.insertAdjacentHTML('beforeend', css);
+    },
+    // UTILS
+    toColor(string) {
+      let hash = 0;
+      for (let i = 0; i < string.length; i += 1) {
+        hash = string.charCodeAt(i) + ((hash << 5) - hash); // eslint-disable-line no-bitwise
+      }
+      const color = Math.floor(Math.abs(((Math.sin(hash) * 10000) % 1) * 0xFFFFFF)).toString(16);
+      return `#${color.padStart(6, '0')}`;
+    },
+    replaceAll(str, find, replace) {
+      return str.split(find).join(replace);
+    },
+    waitFor(predicate, limit = 20, timeout = 500, count = 0) {
+      function retry(resolve, reject, counter) {
+        const result = predicate();
+        if (result) {
+          resolve(result);
+        } else if (limit > 0 && counter >= limit) {
+          console.error('-- _.waitFor TIMEOUT REJECTED --', 'predicate:', predicate.toString());
+          reject(new Error('timeout'));
+        } else {
+          setTimeout(retry, timeout, resolve, reject, counter + 1);
+        }
+      }
+      return new Promise((resolve, reject) => {
+        retry(resolve, reject, count);
+      });
+    },
+    isInputActive() {
+      return document.activeElement && (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable);
+    },
+    getKey(object, path, defaultValue) {
+      const pathArray = typeof path === 'string' ? [path] : path;
+      let value = object;
+      const result = pathArray.every((key) => {
+        if (value[key] != null) {
+          value = value[key];
+          return true;
+        }
+        return false;
+      });
+      return result ? value : defaultValue;
+    },
+    debounce(func, wait) {
+      const delay = wait || 100;
+      let timeout;
+      return function debounced(...args) {
+        const context = this;
+        const later = function later() {
+          timeout = null;
+          func.apply(context, args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, delay);
+      };
+    },
+    // LOGGER
+    logger(prefixes) {
+      const prefixArray = typeof prefixes === 'string' ? [prefixes] : prefixes;
+      const prefixString = prefixArray ? prefixArray.map(prefix => `%c ${prefix} %c`).join(' ') : null;
+      const prefixColors = [];
+      if (prefixString) {
+        prefixArray.forEach((prefix) => {
+          prefixColors.push(`background:#eee;color:${_.toColor(prefix)}`);
+          prefixColors.push('background:transparent');
+        });
+      }
+
+      const obj = {};
+      ['debug', 'info', 'log', 'warn', 'error', 'trace'].forEach((funcName) => {
+        obj[funcName] = function log(...args) {
+          if (prefixString) {
+            args.unshift(...prefixColors);
+            args.unshift(prefixString);
+          }
+          console[funcName](...args); // eslint-disable-line no-console
+        };
+      });
+      obj.push = function push(newPrefix) {
+        const newPrefixes = prefixArray ? prefixArray.slice() : [];
+        newPrefixes.push(newPrefix);
+        return _.logger(newPrefixes);
+      };
+      return obj;
+    },
+    ajax(url, attrs, logger) {
+      const ajaxLogger = logger ? logger.push('ajax') : _.logger('ajax');
+      return {
+        send() {
+          return new Promise((resolve, reject) => {
+            const ajaxObj = {
+              method: 'GET',
+              timeout: 15000,
+              url,
+              onload(rsp) {
+                if (rsp.status === 200) {
+                  ajaxLogger.debug('done', url);
+                  resolve(rsp.responseText);
+                } else {
+                  const err = Error(`${rsp.status} ${rsp.statusText}`);
+                  ajaxLogger.warn('failed', url, err, rsp);
+                  reject(err);
+                }
+              },
+              onerror(rsp) {
+                const err = Error('Network Error');
+                ajaxLogger.warn('failed', url, err, rsp);
+                reject(err);
+              },
+              ontimeout(rsp) {
+                const err = Error('Timed Out');
+                ajaxLogger.warn('failed', url, err, rsp);
+                reject(err);
+              },
+            };
+            if (attrs) {
+              Object.assign(ajaxObj, attrs);
+            }
+            ajaxLogger.debug('started', url);
+            GM_xmlhttpRequest(ajaxObj); // eslint-disable-line new-cap
+          });
+        },
+      };
+    },
+  };
+}());
+
+/* video scroller */
+const VideoScroller = (function videoScroller() {
+  'use strict';
+
+  _.addCSS(`
+    .ext_volume_bar {
+      position: absolute;
+      background: rgba(255,255,255,0.4);
+      z-index: 2147483647;
+      width: 13px;
+      height: 200px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .1s cubic-bezier(0.4,0,1,1);
+    }
+    .ext_volume_bar_fill {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 100%;
+    }
+    .ext_progress_bar {
+      position: absolute;
+      bottom: 0;
+      z-index: 2147483647;
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.4);
+      opacity: 1;
+      transition: opacity .1s cubic-bezier(0.4,0,1,1);
+    }
+    .ext_progress_bar_fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 1s linear;
+    }
+  `);
+
+  const DEFAULT_OPTIONS = {
+    logger: undefined,
+    color: '#000',
+    getVolumeWheelElement(player) {
+      return player;
+    },
+    getRightOffset(player) { // eslint-disable-line no-unused-vars
+      return 0;
+    },
+    getBottomOffset(player) { // eslint-disable-line no-unused-vars
+      return 0;
+    },
+    changeVolume(player, increase) {
+      const step = 0.05;
+      const video = _.get('video', player);
+      const volume = video.muted ? 0 : video.volume;
+      const newVolume = Math.max(Math.min(increase ? (volume + step) : (volume - step), 1), 0);
+      if (newVolume > 0) {
+        video.muted = false;
+      }
+      video.volume = newVolume;
+      return newVolume * 100;
+    },
+    getSpeedContainerElement(player) {
+      return player;
+    },
+    addSpeedTextElement(container) {
+      return container.insertBefore(_.create('button', '1x'), container.firstElementChild);
+    },
+    getPlaybackRate(player) {
+      const video = _.get('video', player);
+      return video.playbackRate;
+    },
+    changeSpeed(player, increase) {
+      const step = 0.25;
+      const video = _.get('video', player);
+      const speed = video.playbackRate;
+      const newSpeed = increase ? (speed + step) : (speed - step);
+      if (newSpeed > 0) {
+        video.playbackRate = newSpeed;
+      }
+      return video.playbackRate;
+    },
+    getProgressContainerElement(player) {
+      return player;
+    },
+    getVideoDuration(player) {
+      const video = _.get('video', player);
+      return video.duration;
+    },
+    getCurrentTime(player) {
+      const video = _.get('video', player);
+      return video.currentTime;
+    },
+    isPaused(player) {
+      const video = _.get('video', player);
+      return video.paused;
+    },
+    playOrPause(player) {
+      const video = _.get('video', player);
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+      return true;
+    },
+    seekVideo(player, forward) {
+      const step = 20;
+      const video = _.get('video', player);
+      const playerTime = video.currentTime;
+      if (playerTime) {
+        const newTime = forward ? (playerTime + step) : (playerTime - step);
+        video.currentTime = newTime;
+        return true;
+      }
+      return false;
+    },
+  };
+
+  return class Scroller {
+    constructor(player, options = {}) {
+      this.player = player;
+      this.options = Object.assign({}, DEFAULT_OPTIONS, options);
+      this.options.logger = this.options.logger ? this.options.logger.push('scroller') : _.logger('scroller');
+
+      // scroll player area to control volume
+      this.volumeWheelElement = this.options.getVolumeWheelElement(this.player);
+      if (this.volumeWheelElement) {
+        this.onScrollPlayer = this.onScrollPlayer.bind(this);
+        this.volumeWheelElement.addEventListener('wheel', this.onScrollPlayer);
+      }
+
+      // scroll button/label to control speed
+      const speedContainerElement = this.options.getSpeedContainerElement(this.player);
+      if (speedContainerElement) {
+        this.speedTextElement = this.options.addSpeedTextElement(speedContainerElement);
+        this.onScrollSpeed = this.onScrollSpeed.bind(this);
+        this.speedTextElement.addEventListener('wheel', this.onScrollSpeed);
+      }
+
+      // show player progress bar when controls are hidden
+      this.progressContainerElement = this.options.getProgressContainerElement(this.player);
+      if (this.progressContainerElement) {
+        this.pollVideoTime = this.pollVideoTime.bind(this);
+        this.pollVideoTime();
+      }
+
+      // add key shortcuts
+      this.onKeyDown = this.onKeyDown.bind(this);
+      document.addEventListener('keydown', this.onKeyDown, true);
+
+      this.options.logger.log('created scroller');
+    }
+
+    destroy() {
+      this.player = null;
+
+      if (this.volumeWheelElement) {
+        this.volumeWheelElement.removeEventListener('wheel', this.onScrollPlayer);
+        this.volumeWheelElement = null;
+      }
+
+      if (this.speedTextElement) {
+        this.speedTextElement.removeEventListener('wheel', this.onScrollSpeed);
+        this.speedTextElement.remove();
+        this.speedTextElement = null;
+      }
+
+      this.progressContainerElement = null;
+      this.progressFill = null;
+
+      document.removeEventListener('keydown', this.onKeyDown, true);
+
+      this.destroyed = true;
+
+      this.options.logger.log('destroyed scroller');
+    }
+
+    onKeyDown(event) {
+      if (_.isInputActive()) return;
+
+      switch (event.code) {
+        case 'Space':
+        case 'KeyK': {
+          if (this.options.playOrPause(this.player)) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          break;
+        }
+        case 'ArrowLeft':
+        case 'ArrowRight': {
+          if (this.options.seekVideo(this.player, event.code === 'ArrowRight')) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          break;
+        }
+        case 'ArrowUp':
+        case 'ArrowDown': {
+          event.preventDefault();
+          event.stopPropagation();
+          this.changeVolume(event.code === 'ArrowUp');
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
+    pollVideoTime() {
+      if (this.progressContainerElement && this.player) {
+        if (!this.progressFill) {
+          const progress = _.get('.ext_progress_bar', this.progressContainerElement)
+            || this.progressContainerElement.appendChild(_.create('.ext_progress_bar'));
+          this.progressFill = _.get('.ext_progress_bar_fill', progress)
+            || progress.appendChild(_.create('.ext_progress_bar_fill', { style: `background:${this.options.color}` }));
+        }
+
+        const duration = this.options.getVideoDuration(this.player);
+        if (duration > 0) {
+          const percent = (this.options.getCurrentTime(this.player) + 1) / duration;
+          this.progressFill.style.transform = `scaleX(${percent})`;
+        }
+
+        if (this.speedTextElement) {
+          const speed = this.options.getPlaybackRate(this.player);
+          this.speedTextElement.textContent = `${speed}x`;
+        }
+
+        if (!this.destroyed) {
+          setTimeout(this.pollVideoTime, 1000);
+        }
+      }
+    }
+
+    onScrollSpeed(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.changeSpeed(event.deltaY < 0);
+    }
+
+    changeSpeed(increase) {
+      if (this.player && this.speedTextElement) {
+        const newSpeed = this.options.changeSpeed(this.player, increase);
+        this.speedTextElement.textContent = `${newSpeed}x`;
+      }
+    }
+
+    onScrollPlayer(event) {
+      if (!this.options.isPaused(this.player)) {
+        event.preventDefault();
+        this.changeVolume(event.deltaY < 0);
+      }
+    }
+
+    changeVolume(increase) {
+      const rightOffset = this.options.getRightOffset(this.player);
+      const bottomOffset = this.options.getBottomOffset(this.player);
+      const volumeBar = _.get('.ext_volume_bar', this.player)
+        || this.player.appendChild(_.create('.ext_volume_bar'));
+      const volumeBarFill = _.get('.ext_volume_bar_fill', this.player)
+        || volumeBar.appendChild(_.create('.ext_volume_bar_fill', { style: `background:${this.options.color}` }));
+
+      if (this.player.hasAttribute('data-ext_volume_timeout')) {
+        const oldTid = this.player.getAttribute('data-ext_volume_timeout');
+        if (oldTid) {
+          clearTimeout(+oldTid);
+          this.player.removeAttribute('data-ext_volume_timeout');
+        }
+      }
+
+      const newVolume = this.options.changeVolume(this.player, increase);
+
+      volumeBarFill.style.height = `${newVolume}%`;
+      volumeBar.style.visibility = 'visible';
+      volumeBar.style.opacity = 1;
+      volumeBar.style.right = `${rightOffset}px`;
+      volumeBar.style.bottom = `${bottomOffset}px`;
+      const newTid = setTimeout(() => {
+        volumeBar.style.opacity = 0;
+        const onTransitionEnd = () => {
+          if (!this.player.hasAttribute('data-ext_volume_timeout')) {
+            volumeBar.style.visibility = 'hidden';
+          }
+          volumeBar.removeEventListener('transitionend', onTransitionEnd);
+        };
+        volumeBar.addEventListener('transitionend', onTransitionEnd);
+        this.player.removeAttribute('data-ext_volume_timeout');
+      }, 2000);
+      this.player.setAttribute('data-ext_volume_timeout', newTid);
+    }
+  };
+}());
+
+/* global moment:false */
+(function main(window) {
+  'use strict';
+
+  let LOGGER = _.logger('video player scroller');
+  LOGGER.log('starting...');
+
+  const sites = {
+    twitch: {
+      addRouteChangeListeners() {
+        LOGGER.log('adding route change listeners');
+
+        _.addCSS(`
+          .ext_progress_bar {
+            opacity: 0;
+          }
+          [data-video][data-controls="false"] .ext_progress_bar {
+            opacity: 1;
+          }
+          [data-video][data-controls="false"][data-paused="true"] .ext_progress_bar {
+            opacity: 0;
+          }
+          .ember-chat .chat-messages .timestamp{
+            min-width: 30px;
+            float: left;
+          }
+          .ember-chat .chat-messages .badges {
+            float: left;
+            clear: left;
+            margin-top: 3px;
+            text-align: right;
+            width: 36px;
+            height: 18px;
+          }
+          .ember-chat .chat-messages .chat-lines .chat-line {
+            font-size: 0;
+          }
+          .ember-chat .chat-messages .chat-lines .chat-line .from,
+          .ember-chat .chat-messages .chat-lines .chat-line .message {
+            font-size: 13.3333px;
+          }
+          .ember-chat .chat-messages .chat-lines .chat-line .from {
+            display: inline-block;
+            margin-left: 6px;
+            line-height: 18px;
+          }
+          .ember-chat .chat-messages .chat-lines .chat-line .message {
+            display: block;
+            margin-left: 42px;
+            min-height: 18px;
+          }
+          .chat-line .timestamp {
+            font-size: 11px;
+            font-weight: bold;
+            padding: 1px 4px;
+            background-color: rgba(77, 77, 77, 0.3);
+          }
+          .chat-line .badges .badge {
+            margin: 0 !important;
+          }
+          .chat-line .badges > a[href*="cheering"],
+          .chat-line .badges > [class^="twitch-bits"],
+          .chat-line .badges > a[href*="twitch.amazon.com/prime"],
+          .chat-line .badges > [class^="twitch-premium"],
+          .chat-line .badges > a[href*="products/turbo"],
+          .chat-line .badges > .turbo {
+            display: none !important;
+          }
+          .chat-line .badges > .bot,
+          .chat-line .badges img[original-title="Moderator"],
+          .chat-line .badges > .moderator,
+          .chat-line .badges img[original-title="Twitch Admin"],
+          .chat-line .badges img[original-title="Admin"],
+          .chat-line .badges > .admin,
+          .chat-line .badges img[original-title="Global Moderator"],
+          .chat-line .badges > .global-moderator,
+          .chat-line .badges img[original-title="Twitch Staff"],
+          .chat-line .badges > .staff,
+          .chat-line .badges img[original-title="Broadcaster"],
+          .chat-line .badges > .broadcaster {
+            display: none !important;
+          }
+          .player-playback-stats {
+            top: 0;
+            left: 0;
+            padding: 0;
+            line-height: 11px;
+            width: 175px;
+          }
+          .player-playback-stats li {
+            padding: 0;
+            font-size: 10px;
+          }
+          .player-playback-stats li div {
+            padding-left: 0;
+          }
+          .player-playback-stats button {
+            display: none;
+          }
+        `);
+
+        if (window.location.hostname === 'clips.twitch.tv') {
+          LOGGER.log('clips');
+          const player = _.get('.js-player');
+          if (player) {
+            this.playerLoaded(player);
+          }
+        } else {
+          _.waitFor(() => window.Ember && window.App)
+            .then(() => {
+              let renderingCounter = 0;
+
+              window.Ember.subscribe('render', {
+                before() {
+                  renderingCounter++;
+                },
+                after() {
+                  renderingCounter--;
+                },
+              });
+
+              const appContainer = window.App.__container__.lookup('controller:application'); // eslint-disable-line no-underscore-dangle
+              let currentRoute = appContainer.currentRouteName;
+              appContainer.addObserver('currentRouteName', (data) => {
+                const lastRoute = currentRoute;
+                currentRoute = data.currentRouteName;
+                _.waitFor(() => renderingCounter === 0)
+                  .then(() => {
+                    this.onRouteChange(currentRoute, lastRoute);
+                  });
+              });
+            });
+        }
+      },
+      onRouteChange(newRoute, oldRoute) {
+        LOGGER.log(oldRoute, '-->', newRoute);
+
+        switch (newRoute) {
+          case 'loading':
+            break;
+          case 'chat':
+            this.waitForChat();
+            break;
+          case 'channel.index.index':
+          case 'channel.videos.video-type':
+          case 'channel.clips':
+          case 'channel.followers':
+          case 'channel.following':
+            if (newRoute === 'channel.index.index') {
+              this.waitForPlayer();
+            }
+            if (!oldRoute.startsWith('channel.')) {
+              this.waitForChat();
+            }
+            break;
+          case 'videos':
+            this.waitForPlayer();
+            this.waitForChat();
+            break;
+          default:
+            break;
+        }
+      },
+      waitForChat() {
+        const chat = _.get('.ember-chat');
+        this.chatLoaded(chat);
+      },
+      chatLoaded(chat) {
+        LOGGER.log('observing chat...');
+
+        const onChatElementAdded = (element) => {
+          if (element.classList.contains('chat-line')) {
+            this.fixTimestamp(element);
+            this.removeBadges(element);
+          } else {
+            const lines = _.all('.chat-line', element);
+            lines.forEach((line) => {
+              onChatElementAdded(line);
+            });
+          }
+        };
+
+        if (this.chatObserver) {
+          this.chatObserver.disconnect();
+          this.chatObserver = null;
+        }
+        if (!this.chatObserver) {
+          this.chatObserver = _.observeAddedElements(chat, onChatElementAdded);
+        }
+      },
+      fixTimestamp(chatLine) {
+        const timestampElement = _.get('.timestamp', chatLine);
+        if (timestampElement) {
+          if (this.vodStart && this.videoScroller) {
+            const time = this.videoScroller.options.getCurrentTime(this.videoScroller.player);
+            const m = moment(this.vodStart + (time * 1000));
+            timestampElement.textContent = m.format('HH:mm');
+          } else if (!this.vodStart) {
+            const m = moment(Date.now());
+            timestampElement.textContent = m.format('HH:mm');
+          }
+        }
+      },
+      removeBadges(chatLine) {
+        const from = _.get('.from', chatLine);
+        if (from) {
+          let color;
+          const bot = _.get('.badges > .bot', chatLine);
+          if (bot) {
+            color = '#c2c2c2';
+          }
+
+          const moderator = _.get('.badges img[original-title="Moderator"]', chatLine)
+            || _.get('.badges > .moderator', chatLine);
+          if (moderator) {
+            color = '#25b869';
+          }
+
+          const admin = _.get('.badges img[original-title="Twitch Admin"]', chatLine)
+            || _.get('.badges img[original-title="Admin"]', chatLine)
+            || _.get('.badges img[original-title="Global Moderator"]', chatLine)
+            || _.get('.badges img[original-title="Twitch Staff"]', chatLine)
+            || _.get('.badges > .admin', chatLine)
+            || _.get('.badges > .global-moderator', chatLine)
+            || _.get('.badges > .staff', chatLine);
+          if (admin) {
+            color = '#faaf19';
+          }
+
+          const broadcaster = _.get('.badges img[original-title="Broadcaster"]', chatLine)
+            || _.get('.badges > .broadcaster', chatLine);
+          if (broadcaster) {
+            color = '#fa303c';
+          }
+
+          if (color) {
+            const timestamp = _.get('.timestamp', chatLine);
+            if (timestamp) {
+              timestamp.style.backgroundColor = color;
+              timestamp.style.color = '#fff';
+              timestamp.style.textShadow = '1px 1px 0px black';
+            }
+          }
+        }
+      },
+      waitForPlayer() {
+        _.waitFor(() => {
+          const player = _.get('#player');
+          if (player && player.dataset.initializing === 'false') {
+            if (player.dataset.contentStream === 'vod') {
+              return player.dataset.video ? player : false;
+            }
+            return player;
+          }
+          return false;
+        }).then((player) => {
+          this.playerLoaded(player);
+        });
+      },
+      scrollerOptions: {
+        logger: LOGGER,
+        color: '#a991d4',
+        getRightOffset(player) { // eslint-disable-line no-unused-vars
+          return 10;
+        },
+        getBottomOffset(player) { // eslint-disable-line no-unused-vars
+          return 88;
+        },
+        getSpeedContainerElement(player) {
+          return _.get('.player-buttons-right', player);
+        },
+        addSpeedTextElement(container) {
+          const element = _.create('button.player-button', { style: 'text-align:center;padding-top:5px', textContent: '1x' });
+          container.insertBefore(element, container.firstElementChild);
+          return element;
+        },
+      },
+      playerLoaded(player) {
+        LOGGER.log('player loaded');
+
+        if (player.dataset.contentStream === 'vod') {
+          this.vodStart = 0;
+          this.getVodTime(player);
+        }
+
+        if (this.videoScroller) {
+          this.videoScroller.destroy();
+          this.videoScroller = null;
+        }
+        if (!this.videoScroller) {
+          this.videoScroller = new VideoScroller(player, this.scrollerOptions);
+        }
+      },
+      ajax(url) {
+        return _.ajax(url, {
+          headers: {
+            Accept: 'application/vnd.twitchtv.v5+json',
+            'Client-ID': 'a936j1ucnma1ucntkp2qf8vepul2tnn',
+          },
+        }, LOGGER);
+      },
+      getVodTime(player) {
+        LOGGER.log('getting vod start time...');
+
+        const element = _.get('.js-cn-metabar__timeago');
+        if (element && !element.hasAttribute('data-ext_vodtime')) {
+          element.setAttribute('data-ext_vodtime', 'pending');
+          const url = `https://api.twitch.tv/kraken/videos/${player.dataset.video}`;
+          this.ajax(url).send()
+            .then((response) => {
+              const jsonR = JSON.parse(response);
+              if (jsonR.recorded_at) {
+                const m = moment(jsonR.recorded_at);
+                const formattedTime = m.format('dddd, MMMM Do YYYY, HH:mm');
+                this.vodStart = m.valueOf();
+                LOGGER.log('got vod start:', this.vodStart, formattedTime);
+                element.textContent += ` • ${formattedTime}`;
+                element.setAttribute('data-ext_vodtime', this.vodStart);
+              } else {
+                element.textContent += ' • (no data)';
+              }
+            }).catch((error) => {
+              LOGGER.warn('failed to get vod start time', error);
+              element.textContent += ' • (ajax failed)';
+            });
+        }
+      },
+    },
+    youtube: {
+      addRouteChangeListeners() {
+        LOGGER.log('adding route change listeners');
+
+        _.addCSS(`
+          .ext_progress_bar {
+            opacity: 0;
+          }
+          .ytp-autohide .ext_progress_bar {
+            opacity: 1;
+          }
+          span.ext_pubtime {
+            cursor: help;
+          }
+          span.ext_pubtime:before {
+            content: '•';
+            margin: 0 5px;
+          }
+        `);
+
+        document.addEventListener('spfpartprocess', event => this.onSpfPartProcess(event));
+        document.addEventListener('spfprocess', () => this.onSpfProcess());
+        document.addEventListener('spfdone', () => this.onSpfDone());
+
+        this.addHeaderLinks();
+
+        this.onSpfDone();
+      },
+      addHeaderLinks() {
+        if (!window.location.pathname.startsWith('/embed/')) {
+          const button = _.get('#upload-btn');
+          if (button && button.parentNode) {
+            const myVideos = _.create('a', {
+              href: '/my_videos',
+              className: 'yt-uix-button yt-uix-button-default yt-uix-button-size-default',
+              style: 'margin-right: 5px;',
+              innerHTML: '<span class="yt-uix-button-content">My Videos</span>',
+            });
+            const myChannel = _.create('a', {
+              href: '/user',
+              className: 'yt-uix-button yt-uix-button-default yt-uix-button-size-default',
+              style: 'margin-right: 5px;',
+              innerHTML: '<span class="yt-uix-button-content">My Channel</span>',
+            });
+            button.parentNode.insertBefore(myVideos, button);
+            button.parentNode.insertBefore(myChannel, button);
+          }
+        }
+      },
+      onSpfDone() {
+        this.addChannelLinks();
+        this.addPublishListeners('.yt-lockup-video', '.yt-lockup-meta-info');
+        this.addPublishListeners('.pl-video', '.pl-video-owner');
+
+        if (!window.location.pathname.startsWith('/feed/')) {
+          _.waitFor(() => {
+            let selector = '.html5-video-player';
+            if (window.location.pathname === '/watch') {
+              selector += '#movie_player';
+            } else {
+              const match = window.location.pathname.match(/^\/(channel|user)\/[\w]*\/?(\w*)$/);
+              if (match && match.length === 3 && (match[2] === 'featured' || match[2] === '')) {
+                selector += '#c4-player';
+              }
+            }
+            const player = _.get(selector);
+            return player;
+          }).then((player) => {
+            this.playerLoaded(player);
+          });
+        }
+      },
+      onPubTimeClick(event) {
+        event.stopPropagation();
+        let videoID;
+        let parent = event.currentTarget;
+        while (parent && parent !== document.body && parent !== document.documentElement) {
+          if (parent.dataset && (parent.dataset.contextItemId || parent.dataset.videoId)) {
+            videoID = parent.dataset.contextItemId || parent.dataset.videoId;
+            break;
+          }
+          parent = parent.parentElement;
+        }
+        if (videoID) {
+          const API_KEY = 'AIzaSyBwHoTOKR5AkZ26jb_ddW309O4U8hFhPeo';
+          const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoID}&key=${API_KEY}`;
+          _.ajax(url, {}, LOGGER).send()
+            .then((response) => {
+              const jsonR = JSON.parse(response);
+              const m = moment(jsonR.items[0].snippet.publishedAt);
+              event.target.textContent = m.format('dddd, MMMM D, YYYY @ HH:mm');
+            })
+            .catch((error) => {
+              LOGGER.warn('Publish Date Failed', error);
+              event.target.textContent = ':(';
+            });
+        }
+      },
+      addPublishListeners(selector, infoSelector) {
+        _.all(selector).forEach((element) => {
+          const info = _.get(infoSelector, element);
+          if (info) {
+            const pubTime = _.get('.ext_pubtime', info);
+            if (!pubTime) {
+              const onClick = (event) => {
+                this.onPubTimeClick(event);
+                event.currentTarget.removeEventListener('click', onClick, true);
+                event.currentTarget.style.cursor = 'inherit';
+              };
+              info.appendChild(_.create('span', {
+                className: 'ext_pubtime',
+                textContent: '⏱',
+              })).addEventListener('click', onClick, true);
+            }
+          }
+        });
+      },
+      addChannelLinks() {
+        if (location.pathname === '/watch') {
+          const header = _.get('#watch-header');
+          if (header) {
+            const info = _.get('.yt-user-info', header);
+            if (info) {
+              let url;
+              Array.from(_.all('a', header)).some((element) => {
+                const href = element.getAttribute('href');
+                if (href.startsWith('/user/')) {
+                  url = href;
+                  return true;
+                }
+                if (href.startsWith('/channel/')) {
+                  url = href;
+                }
+                return false;
+              });
+              if (url) {
+                url = `${url.split('?')[0]}/videos`;
+                info.appendChild(_.create('a', {
+                  href: url,
+                  style: 'margin-left: 10px',
+                  textContent: 'Channel Videos',
+                }));
+              }
+            }
+          }
+        }
+      },
+      scrollerOptions: {
+        logger: LOGGER,
+        color: '#f12b24',
+        getVolumeWheelElement(player) {
+          return player.parentElement;
+        },
+        getRightOffset(player) {
+          const chromeBottom = _.get('.ytp-chrome-bottom', player);
+          return chromeBottom ? _.getStyle(chromeBottom, 'left') : 0;
+        },
+        getBottomOffset(player) {
+          const chromeBottom = _.get('.ytp-chrome-bottom', player);
+          return chromeBottom ? _.getStyle(chromeBottom, 'height') * 1.5 : 0;
+        },
+        changeVolume(player, increase) {
+          const step = increase ? 5 : -5;
+          const volume = player.isMuted() ? 0 : player.getVolume();
+          const newVolume = Math.max(Math.min(volume + step, 100), 0);
+          if (newVolume > 0) {
+            player.unMute();
+          }
+          player.setVolume(newVolume);
+          return newVolume;
+        },
+        getSpeedContainerElement(player) {
+          return _.get('.ytp-right-controls', player);
+        },
+        addSpeedTextElement(container) {
+          const element = _.create('button.ytp-button', {
+            style: 'position:relative',
+            innerHTML: '<div style="position:absolute;top:0;width:100%;text-align:center">1x</div>',
+          });
+          container.insertBefore(element, container.firstChild);
+          return element.firstChild;
+        },
+        getPlaybackRate(player) {
+          return player.getPlaybackRate();
+        },
+        changeSpeed(player, increase) {
+          const rates = player.getAvailablePlaybackRates();
+          const speed = player.getPlaybackRate();
+          const index = rates.indexOf(speed);
+          const newIndex = increase ? (index + 1) : (index - 1);
+          if (newIndex >= 0 && newIndex < rates.length) {
+            const newSpeed = rates[newIndex];
+            player.setPlaybackRate(newSpeed);
+          }
+          return player.getPlaybackRate();
+        },
+        getVideoDuration(player) {
+          return player.getDuration();
+        },
+        getCurrentTime(player) {
+          return player.getCurrentTime();
+        },
+        isPaused(player) {
+          // 1 = playing, 3 = buffering
+          return ![1, 3].includes(player.getPlayerState());
+        },
+        playOrPause(player) {
+          // 1 = playing, 3 = buffering
+          if ([1, 3].includes(player.getPlayerState())) {
+            player.pauseVideo();
+          } else {
+            player.playVideo();
+          }
+          return true;
+        },
+        seekVideo(player, forwards) { // eslint-disable-line no-unused-vars
+          return false;
+        },
+      },
+      playerLoaded(player) {
+        this.stopAutoplay(player);
+        this.forceWideMode();
+
+        if (this.videoScroller && this.videoScroller.player !== player) {
+          this.videoScroller.destroy();
+          this.videoScroller = null;
+        }
+        if (!this.videoScroller) {
+          this.videoScroller = new VideoScroller(player, this.scrollerOptions);
+        }
+      },
+      forceWideMode() {
+        const page = _.get('#page');
+        if (page && page.classList.contains('watch')) {
+          if (!page.classList.contains('watch-stage-mode') && !page.classList.contains('watch-wide')) {
+            document.cookie = 'wide=1; domain=.youtube.com; path=/;';
+            page.classList.add('watch-stage-mode', 'watch-wide');
+          }
+        }
+      },
+      stopNextAutoplay: true,
+      stopAutoplay(player) {
+        const TIMESTAMP_REGEX = /[?#&](?:star)?t(?:ime(?:_continue)?)?=/i;
+        const hasTimeStamp = window.location.href.match(TIMESTAMP_REGEX);
+        const state = player.getPlayerState();
+        LOGGER.log('player found; state =', state);
+        if (state === 1) {
+          if (this.stopNextAutoplay) {
+            LOGGER.log('stopping player');
+            this.stopNextAutoplay = false;
+            if (hasTimeStamp) {
+              player.pauseVideo();
+            } else {
+              player.stopVideo();
+            }
+          }
+        } else if (state === 3) {
+          const onPlayerStateChange = (newState) => {
+            LOGGER.log('state changed; state =', newState);
+            if (newState === 1) {
+              player.removeEventListener('onStateChange', onPlayerStateChange);
+              if (this.stopNextAutoplay) {
+                LOGGER.log('stopping player');
+                this.stopNextAutoplay = false;
+                if (hasTimeStamp) {
+                  player.pauseVideo();
+                } else {
+                  player.stopVideo();
+                }
+              }
+            }
+          };
+          player.addEventListener('onStateChange', onPlayerStateChange);
+        }
+      },
+      onSpfProcess() {
+        this.stopNextAutoplay = true;
+      },
+      onSpfPartProcess(event) {
+        const cfg = _.getKey(event, ['detail', 'part', 'data', 'swfcfg']);
+        if (cfg) {
+          this.stopNextAutoplay = !this.shouldStopAutoplay(cfg);
+        }
+      },
+      shouldStopAutoplay(cfg) {
+        const referrer = _.getKey(cfg, ['args', 'referrer']);
+        if (referrer) {
+          if (cfg.args.list) {
+            return referrer.includes(cfg.args.list);
+          }
+          if (cfg.args.video_id) {
+            return referrer.includes(cfg.args.video_id);
+          }
+        }
+        return false;
+      },
+    },
+    vimeo: {
+      addRouteChangeListeners() {
+        LOGGER.log('adding route change listeners');
+
+        _.addCSS(`
+          .ext_progress_bar {
+            opacity: 0;
+          }
+          [tabindex="0"] > .ext_progress_bar {
+            opacity: 1;
+          }
+        `);
+
+        if (window.location.hostname === 'player.vimeo.com') {
+          LOGGER.log('embed');
+          this.onRouteChange();
+        } else {
+          const debouncedOnRouteChange = _.debounce(this.onRouteChange, 500).bind(this);
+          _.waitFor(() => window.___ClipStore) // eslint-disable-line no-underscore-dangle
+            .then((store) => {
+              let clipID = 0;
+              store.addChangeListener(function onChange() {
+                if (clipID !== this.state.clip.id) {
+                  clipID = this.state.clip.id;
+                  debouncedOnRouteChange();
+                }
+              });
+            });
+        }
+      },
+      onRouteChange() {
+        LOGGER.log('route changed');
+
+        _.waitFor(() => {
+          const player = _.get('.player');
+          if (player) {
+            if (player.dataset.player === 'true') {
+              return player;
+            }
+            if (_.get('.password.form', player)) {
+              return _.waitFor(() => {
+                if (_.get('video', player)) {
+                  return player;
+                }
+                return false;
+              }, -1);
+            }
+            if (_.get('video', player)) {
+              return player;
+            }
+          }
+          return false;
+        }).then((player) => {
+          this.playerLoaded(player);
+        });
+      },
+      playerLoaded(player) {
+        if (this.videoScroller) {
+          this.videoScroller.destroy();
+          this.videoScroller = null;
+        }
+        if (!this.videoScroller) {
+          this.videoScroller = new VideoScroller(player, this.scrollerOptions);
+        }
+      },
+      scrollerOptions: {
+        logger: LOGGER,
+        color: '#00adef',
+        getRightOffset(player) { // eslint-disable-line no-unused-vars
+          return 10;
+        },
+        getBottomOffset(player) { // eslint-disable-line no-unused-vars
+          return 64;
+        },
+        getSpeedContainerElement(player) {
+          return _.get('.sidedock', player);
+        },
+        addSpeedTextElement(container) {
+          const box = _.create('.box');
+          const element = box.appendChild(_.create('button.rounded-box', {
+            textContent: '1x',
+            style: 'color:#fff',
+          }));
+          container.appendChild(box);
+          return element;
+        },
+      },
+    },
+  };
+
+  const site = Object.entries(sites).find(([key]) => window.location.hostname.includes(key));
+  LOGGER = LOGGER.push(site[0]);
+
+  document.addEventListener('DOMContentLoaded', () => {
+    LOGGER.log('ready', window.location.href);
+    site[1].addRouteChangeListeners();
+  });
+}(this.unsafeWindow || window));
