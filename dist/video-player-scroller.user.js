@@ -11,7 +11,7 @@
 // @exclude     *.html
 // @exclude     *.html?*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/f598a16cc6cb7167ee5b99e8b80449165e0b99c2/dist/utils.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/dffc97ae9710bfdb45154950ff5213b85062ee30/dist/utils.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
