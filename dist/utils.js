@@ -1,4 +1,4 @@
-/* global GM_xmlhttpRequest:false */
+/* global GM_xmlhttpRequest:false, GM_getValue:false, GM_setValue:false */
 const _ = (function utils() {
   'use strict';
 
@@ -173,6 +173,24 @@ const _ = (function utils() {
       const newWindow = window.open(null, '_blank');
       newWindow.opener = null;
       newWindow.location = url;
+    },
+    toURI(url, params) {
+      const str = url + (url.includes('?') ? '&' : '?');
+      return str + Object.keys(params).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key]).replace(/%20/g, '+')}`).join('&');
+    },
+    // STORAGE
+    putJSON(key, data) {
+      GM_setValue(key, JSON.stringify(data)); // eslint-disable-line new-cap
+    },
+    getJSON(key, _default) {
+      const data = GM_getValue(key); // eslint-disable-line new-cap
+      if (data !== undefined) {
+        return JSON.parse(data);
+      }
+      if (_default !== undefined) {
+        _.putJSON(key, _default);
+      }
+      return _default;
     },
     // LOGGER
     logger(prefixes) {
