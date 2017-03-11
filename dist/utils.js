@@ -240,7 +240,7 @@ const _ = (function utils() {
       };
       return obj;
     },
-    ajax(url, attrs, logger) {
+    ajax(url, { attrs = {}, logger } = {}) {
       const ajaxLogger = logger ? logger.push('ajax') : _.logger('ajax');
       return {
         send() {
@@ -270,9 +270,7 @@ const _ = (function utils() {
                 reject(err);
               },
             };
-            if (attrs) {
-              Object.assign(ajaxObj, attrs);
-            }
+            Object.assign(ajaxObj, attrs);
             ajaxLogger.debug('started', url);
             GM_xmlhttpRequest(ajaxObj); // eslint-disable-line new-cap
           });
@@ -293,7 +291,7 @@ const _ = (function utils() {
         const stored = _.getJSON(storeKey);
         if (!stored || !stored.data || !stored.cacheTime
           || ((Date.now() - stored.cacheTime) > cacheLength) || isStale(stored)) {
-          _.ajax(url, attrs, ajaxLogger).send()
+          _.ajax(url, { attrs, logger: ajaxLogger }).send()
             .then((response) => {
               const parsed = parse(response);
               if (parsed) {
