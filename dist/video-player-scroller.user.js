@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.0.1
+// @version     3.0.2
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -11,7 +11,7 @@
 // @exclude     *.html
 // @exclude     *.html?*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/dffc97ae9710bfdb45154950ff5213b85062ee30/dist/utils.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/02a2d6a8d5d9dc06e8c2792c49f652164be49eff/dist/utils.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -616,11 +616,14 @@ const VideoScroller = (function videoScroller() {
       },
       ajax(url) {
         return _.ajax(url, {
-          headers: {
-            Accept: 'application/vnd.twitchtv.v5+json',
-            'Client-ID': 'a936j1ucnma1ucntkp2qf8vepul2tnn',
+          attrs: {
+            headers: {
+              Accept: 'application/vnd.twitchtv.v5+json',
+              'Client-ID': 'a936j1ucnma1ucntkp2qf8vepul2tnn',
+            },
           },
-        }, LOGGER);
+          logger: LOGGER,
+        });
       },
       getVodTime(player) {
         LOGGER.log('getting vod start time...');
@@ -735,7 +738,7 @@ const VideoScroller = (function videoScroller() {
         if (videoID) {
           const API_KEY = 'AIzaSyBwHoTOKR5AkZ26jb_ddW309O4U8hFhPeo';
           const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoID}&key=${API_KEY}`;
-          _.ajax(url, {}, LOGGER).send()
+          _.ajax(url, { logger: LOGGER }).send()
             .then((response) => {
               const jsonR = JSON.parse(response);
               const m = moment(jsonR.items[0].snippet.publishedAt);

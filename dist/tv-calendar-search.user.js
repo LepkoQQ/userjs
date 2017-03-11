@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name        TV Calendar Search
 // @namespace   http://lepko.net/
-// @version     1.0.0
+// @version     1.0.1
 // @run-at      document-start
 // @match       *://*.pogdesign.co.uk/cat/*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.11/moment-timezone-with-data-2010-2020.min.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/dffc97ae9710bfdb45154950ff5213b85062ee30/dist/utils.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/02a2d6a8d5d9dc06e8c2792c49f652164be49eff/dist/utils.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -294,7 +294,7 @@ const AsyncMenu = (function asyncMenu() {
           }
         } else {
           const url = _.toURI(API_OPTIONS.endpoint, API_OPTIONS.token.params);
-          return _.ajax(url, {}, LOGGER).send()
+          return _.ajax(url, { logger: LOGGER }).send()
             .then(responseText => JSON.parse(responseText))
             .then((json) => {
               API_OPTIONS.token.token = json[API_OPTIONS.token.token_key];
@@ -322,7 +322,7 @@ const AsyncMenu = (function asyncMenu() {
     function fetchJSON(query) {
       return Promise.resolve()
         .then(() => getApiRequestUrl(query))
-        .then(url => _.ajax(url, {}, LOGGER).send())
+        .then(url => _.ajax(url, { logger: LOGGER }).send())
         .then(response => JSON.parse(response));
     }
 
