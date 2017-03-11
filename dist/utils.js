@@ -178,6 +178,25 @@ const _ = (function utils() {
       const str = url + (url.includes('?') ? '&' : '?');
       return str + Object.keys(params).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key]).replace(/%20/g, '+')}`).join('&');
     },
+    escapeHTML(string) {
+      const entityMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+        '/': '&#x2F;',
+      };
+      return String(string).replace(/[&<>"'/]/g, s => entityMap[s]);
+    },
+    removeHTMLExternals(html) {
+      let resp = html;
+      resp = resp.replace(/<script(?:.|\n)*?\/script>/gi, '');
+      resp = resp.replace(/<iframe(?:.|\n)*?\/iframe>/gi, '');
+      resp = resp.replace(/<link(?:.|\n)*?>/gi, '');
+      resp = resp.replace(/<img(?:.|\n)*?>/gi, '');
+      return resp;
+    },
     // STORAGE
     putJSON(key, data) {
       GM_setValue(key, JSON.stringify(data)); // eslint-disable-line new-cap
@@ -259,6 +278,57 @@ const _ = (function utils() {
           });
         },
       };
+    },
+    cachedAjax(storeKey, url, {
+      attrs = {},
+      parse = r => r,
+      isStale = () => false,
+      storeFormat = r => r,
+      cacheLength = 3600000,
+      logger,
+    } = {}) {
+      const ajaxLogger = logger ? logger.push(`cached [${storeKey}]`) : _.logger(`cached [${storeKey}]`);
+      return new Promise((resolve, reject) => {
+        ajaxLogger.debug('started');
+        const stored = _.getJSON(storeKey);
+        if (!stored || !stored.data || !stored.cacheTime
+          || ((Date.now() - stored.cacheTime) > cacheLength) || isStale(stored)) {
+          _.ajax(url, attrs, ajaxLogger).send()
+            .then((response) => {
+              const parsed = parse(response);
+              if (parsed) {
+                const toStore = {
+                  data: parsed,
+                  cacheTime: Date.now(),
+                };
+                _.putJSON(storeKey, storeFormat(toStore));
+                ajaxLogger.debug('done - new data');
+                resolve(parsed);
+              } else {
+                const error = Error('No Data Parsed');
+                if (stored && stored.data) {
+                  ajaxLogger.debug('error - cached data', error);
+                  resolve(stored.data);
+                } else {
+                  ajaxLogger.debug('error', error);
+                  reject(error);
+                }
+              }
+            })
+            .catch((error) => {
+              if (stored && stored.data) {
+                ajaxLogger.debug('error - cached data', error);
+                resolve(stored.data);
+              } else {
+                ajaxLogger.debug('error', error);
+                reject(error);
+              }
+            });
+        } else {
+          ajaxLogger.debug('done - cached data');
+          resolve(stored.data);
+        }
+      });
     },
   };
 }());
