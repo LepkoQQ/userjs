@@ -1,12 +1,14 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.0.2
+// @version     3.0.3
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
 // @match       *://*.vimeo.com/*
-// @match       *://*.twitch.tv/*
+// @match       *://www.twitch.tv/*
+// @match       *://clips.twitch.tv/*
+// @match       *://player.twitch.tv/*
 // @exclude     *.js
 // @exclude     *.html
 // @exclude     *.html?*
@@ -428,6 +430,9 @@ const VideoScroller = (function videoScroller() {
           if (player) {
             this.playerLoaded(player);
           }
+        } else if (window.location.hostname === 'player.twitch.tv') {
+          LOGGER.log('embed');
+          this.waitForPlayer('#video-playback');
         } else {
           _.waitFor(() => window.Ember && window.App)
             .then(() => {
@@ -470,14 +475,14 @@ const VideoScroller = (function videoScroller() {
           case 'channel.followers':
           case 'channel.following':
             if (newRoute === 'channel.index.index') {
-              this.waitForPlayer();
+              this.waitForPlayer('#player');
             }
             if (!oldRoute.startsWith('channel.')) {
               this.waitForChat();
             }
             break;
           case 'videos':
-            this.waitForPlayer();
+            this.waitForPlayer('#player');
             this.waitForChat();
             break;
           default:
@@ -566,9 +571,9 @@ const VideoScroller = (function videoScroller() {
           }
         }
       },
-      waitForPlayer() {
+      waitForPlayer(selector) {
         _.waitFor(() => {
-          const player = _.get('#player');
+          const player = _.get(selector);
           if (player && player.dataset.initializing === 'false') {
             if (player.dataset.contentStream === 'vod') {
               return player.dataset.video ? player : false;
