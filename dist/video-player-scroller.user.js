@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.0.3
+// @version     3.0.4
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -249,14 +249,21 @@ const VideoScroller = (function videoScroller() {
         }
 
         const duration = this.options.getVideoDuration(this.player);
+        const currentTime = this.options.getCurrentTime(this.player);
         if (duration > 0) {
-          const percent = (this.options.getCurrentTime(this.player) + 1) / duration;
+          const percent = (currentTime + 1) / duration;
           this.progressFill.style.transform = `scaleX(${percent})`;
         }
 
         if (this.speedTextElement) {
           const speed = this.options.getPlaybackRate(this.player);
           this.speedTextElement.textContent = `${speed}x`;
+
+          if (duration > 0) {
+            const scaledTimeRemaining = (duration - currentTime) / speed;
+            const m = moment.duration(scaledTimeRemaining, 'seconds');
+            this.speedTextElement.title = moment.utc(m.asMilliseconds()).format('-HH:mm:ss');
+          }
         }
 
         if (!this.destroyed) {
