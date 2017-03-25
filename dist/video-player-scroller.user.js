@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.0.4
+// @version     3.0.5
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -65,6 +65,9 @@ const VideoScroller = (function videoScroller() {
       transform: scaleX(0);
       transform-origin: left;
       transition: transform 1s linear;
+    }
+    .ext_disable_transition {
+      transition: none !important;
     }
   `);
 
@@ -240,7 +243,7 @@ const VideoScroller = (function videoScroller() {
     }
 
     pollVideoTime() {
-      if (this.progressContainerElement && this.player) {
+      if (!this.destroyed && this.progressContainerElement && this.player) {
         if (!this.progressFill) {
           const progress = _.get('.ext_progress_bar', this.progressContainerElement)
             || this.progressContainerElement.appendChild(_.create('.ext_progress_bar'));
@@ -253,6 +256,10 @@ const VideoScroller = (function videoScroller() {
         if (duration > 0) {
           const percent = (currentTime + 1) / duration;
           this.progressFill.style.transform = `scaleX(${percent})`;
+          if (document.hidden !== this.wasDocumentHidden) {
+            this.wasDocumentHidden = document.hidden;
+            this.progressFill.classList.toggle('ext_disable_transition', document.hidden);
+          }
         }
 
         if (this.speedTextElement) {
@@ -266,9 +273,7 @@ const VideoScroller = (function videoScroller() {
           }
         }
 
-        if (!this.destroyed) {
-          setTimeout(this.pollVideoTime, 1000);
-        }
+        setTimeout(this.pollVideoTime, 1000);
       }
     }
 
