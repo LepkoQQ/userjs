@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        TV Calendar Search
 // @namespace   http://lepko.net/
-// @version     1.0.1
+// @version     1.0.2
 // @run-at      document-start
 // @match       *://*.pogdesign.co.uk/cat/*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js
@@ -89,6 +89,10 @@ const AsyncMenu = (function asyncMenu() {
       border-right-color: transparent;
       border-radius: 50% !important;
       animation: ext_spinner 1s infinite linear;
+    }
+    #ext_buttoncontainer {
+      text-align: center;
+      padding: 5px;
     }
   `);
 
@@ -471,8 +475,8 @@ const AsyncMenu = (function asyncMenu() {
     _.get('#cal').classList.toggle('ext_hidewatched');
   }
 
-  function addToggleWatchedButton() {
-    const replaceElem = _.get('.replace');
+  function addToggleWatchedButton(cal) {
+    const replaceElem = cal.parentElement.insertBefore(_.create('#ext_buttoncontainer'), cal);
     const button = _.create('button.ext_togglewatched', {
       textContent: 'Toggle Watched',
       events: {
@@ -490,7 +494,7 @@ const AsyncMenu = (function asyncMenu() {
     if (cal) {
       LOGGER.log('calendar detected');
       _.all('.ep > span', cal).forEach(addLink);
-      addToggleWatchedButton();
+      addToggleWatchedButton(cal);
       onToggleButtonClicked();
       const today = _.get('.today', cal);
       if (today) {
