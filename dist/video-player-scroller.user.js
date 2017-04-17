@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.0.5
+// @version     3.0.6
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -138,8 +138,16 @@ const VideoScroller = (function videoScroller() {
       }
       return true;
     },
-    seekVideo(player, forward) {
-      const step = 20;
+    seekVideo(player, event) {
+      const forward = event.code === 'ArrowRight' || event.code === 'KeyL';
+      let step = 5;
+      if (!event.ctrlKey && !event.altKey && !event.shiftKey) {
+        step = 5;
+      } else if (event.ctrlKey && !event.altKey && !event.shiftKey) {
+        step = 10;
+      } else if (!event.ctrlKey && event.altKey && !event.shiftKey) {
+        step = 20;
+      }
       const video = _.get('video', player);
       const playerTime = video.currentTime;
       if (playerTime) {
@@ -222,9 +230,11 @@ const VideoScroller = (function videoScroller() {
           }
           break;
         }
+        case 'KeyJ':
+        case 'KeyL':
         case 'ArrowLeft':
         case 'ArrowRight': {
-          if (this.options.seekVideo(this.player, event.code === 'ArrowRight')) {
+          if (this.options.seekVideo(this.player, event)) {
             event.preventDefault();
             event.stopPropagation();
           }
@@ -884,7 +894,22 @@ const VideoScroller = (function videoScroller() {
           }
           return true;
         },
-        seekVideo(player, forwards) { // eslint-disable-line no-unused-vars
+        seekVideo(player, event) { // eslint-disable-line no-unused-vars
+          const forward = event.code === 'ArrowRight' || event.code === 'KeyL';
+          let step = 5;
+          if (!event.ctrlKey && !event.altKey && !event.shiftKey) {
+            step = 5;
+          } else if (event.ctrlKey && !event.altKey && !event.shiftKey) {
+            step = 10;
+          } else if (!event.ctrlKey && event.altKey && !event.shiftKey) {
+            step = 20;
+          }
+          const playerTime = player.getCurrentTime();
+          if (playerTime) {
+            const newTime = forward ? (playerTime + step) : (playerTime - step);
+            player.seekTo(newTime, true);
+            return true;
+          }
           return false;
         },
       },
