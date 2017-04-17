@@ -237,6 +237,11 @@ const VideoScroller = (function videoScroller() {
           if (this.options.seekVideo(this.player, event)) {
             event.preventDefault();
             event.stopPropagation();
+            if (typeof this.pollTimeoutID === 'number') {
+              clearTimeout(this.pollTimeoutID);
+              this.pollTimeoutID = null;
+            }
+            this.pollVideoTime();
           }
           break;
         }
@@ -266,9 +271,10 @@ const VideoScroller = (function videoScroller() {
         if (duration > 0) {
           const percent = (currentTime + 1) / duration;
           this.progressFill.style.transform = `scaleX(${percent})`;
-          if (document.hidden !== this.wasDocumentHidden) {
-            this.wasDocumentHidden = document.hidden;
-            this.progressFill.classList.toggle('ext_disable_transition', document.hidden);
+          const hidden = document.hidden || Math.abs(currentTime - this.lastPollCurrentTime) > 2;
+          if (this.wasDocumentHidden !== hidden) {
+            this.wasDocumentHidden = hidden;
+            this.progressFill.classList.toggle('ext_disable_transition', hidden);
           }
         }
 
@@ -283,7 +289,8 @@ const VideoScroller = (function videoScroller() {
           }
         }
 
-        setTimeout(this.pollVideoTime, 1000);
+        this.lastPollCurrentTime = currentTime;
+        this.pollTimeoutID = setTimeout(this.pollVideoTime, 1000);
       }
     }
 
