@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        TV Calendar Search
 // @namespace   http://lepko.net/
-// @version     1.0.2
+// @version     1.0.3
 // @run-at      document-start
 // @match       *://*.pogdesign.co.uk/cat/*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js
@@ -93,6 +93,9 @@ const AsyncMenu = (function asyncMenu() {
     #ext_buttoncontainer {
       text-align: center;
       padding: 5px;
+    }
+    #tvcalendar > #data > .replace {
+      display: none;
     }
   `);
 
