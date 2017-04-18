@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        New Tab Info Boxes
 // @namespace   http://lepko.net/
-// @version     2.0.0
+// @version     2.0.1
 // @run-at      document-start
 // @match       *://www.google.com/_/chrome/newtab*
 // @match       *://www.google.com/_/open/404
@@ -238,39 +238,68 @@
       itmejp: {
         title: 'itmeJP',
         url: 'http://itmejp.com/schedule/',
-        getTimeZone: div => _.get('.js-settimezone option[selected]', div).value,
-        getElements: div => _.all('#block-countdown .body li', div),
-        getName: el => _.get('.name a', el).textContent,
-        getMoment: (el, timeZone) => {
-          const timeStart = _.get('.countdown', el).dataset.start;
-          return moment.tz(timeStart, 'YYYY-MM-DD HH-mm', timeZone);
+        apiUrl: 'http://itmejp.com/api/events-future/',
+        ajaxAttrs: {},
+        parseResponse(response) {
+          return JSON.parse(response);
+        },
+        getTimeZone(resp) {
+          if (resp && resp.length) {
+            return resp[0].event_dt_timezone;
+          }
+          return 'America/New_York';
+        },
+        getEntries(resp) {
+          return resp;
+        },
+        getName(entry) {
+          return entry.event_name;
+        },
+        getTimestamp(entry, timeZone) {
+          const timeStart = entry.event_dt_start;
+          return moment.tz(timeStart, 'YYYY-MM-DD HH-mm-ss', timeZone).valueOf();
         },
       },
       adamkoebel: {
         title: 'Adam Koebel',
-        url: 'http://www.adam-koebel.com/schedule/?view=list',
-        getTimeZone: () => 'America/Los_Angeles',
-        getElements: div => _.all('article.eventlist-event--upcoming', div),
-        getName: el => _.get('.eventlist-title a', el).textContent,
-        getMoment: (el, timeZone) => {
-          const timeEl = _.get('.event-time-24hr-start', el) || _.get('.event-time-24hr', el);
-          const timeStart = `${timeEl.getAttribute('datetime')} ${timeEl.textContent}`;
-          return moment.tz(timeStart, 'YYYY-MM-DD HH-mm', timeZone);
+        url: 'https://www.twitch.tv/adamkoebel/events',
+        apiUrl: 'https://api.twitch.tv/kraken/channels/65587647/events',
+        ajaxAttrs: {
+          headers: {
+            Accept: 'application/vnd.twitchtv.v5+json',
+            'Client-ID': 'a936j1ucnma1ucntkp2qf8vepul2tnn',
+          },
+        },
+        parseResponse(response) {
+          return JSON.parse(response);
+        },
+        getTimeZone() {
+          return 'UTC'; // Twitch events api returs ISO time strings with UTC time
+        },
+        getEntries(resp) {
+          return resp.events;
+        },
+        getName(entry) {
+          return entry.title;
+        },
+        getTimestamp(entry) { // No timezone needed here because we have ISO time string with UTC
+          const timeStart = entry.start_time;
+          return moment(timeStart).valueOf();
         },
       },
     };
 
-    const getEntries = (opt, div) => {
+    const getEntries = (opt, resp) => {
       const obj = {
         entries: [],
         title: opt.title,
         url: opt.url,
       };
-      const timeZone = opt.getTimeZone(div);
-      opt.getElements(div).forEach((element) => {
+      const timeZone = opt.getTimeZone(resp);
+      opt.getEntries(resp).forEach((entry) => {
         obj.entries.push({
-          title: opt.getName(element),
-          timestamp: opt.getMoment(element, timeZone).valueOf(),
+          title: opt.getName(entry),
+          timestamp: opt.getTimestamp(entry, timeZone),
         });
       });
       return obj;
@@ -293,15 +322,14 @@
 
     Promise.all(Object.keys(SCHEDULE_SITES).map((key) => {
       const opt = SCHEDULE_SITES[key];
-      return _.cachedAjax(`schedule-${key}`, opt.url, {
+      return _.cachedAjax(`schedule-${key}`, opt.apiUrl, {
+        attrs: opt.ajaxAttrs,
         parse(response) {
-          const resp = _.removeHTMLExternals(response);
-          const tmp = _.create('div', {
-            innerHTML: resp,
-          });
-          return getEntries(opt, tmp);
+          const resp = opt.parseResponse(response);
+          return getEntries(opt, resp);
         },
-      }, LOGGER);
+        logger: LOGGER,
+      });
     })).then((results) => {
       results.forEach(addScheduleTable);
     }, (error) => {
