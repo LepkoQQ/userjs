@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.0.7
+// @version     3.0.8
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -374,6 +374,7 @@ const VideoScroller = (function videoScroller() {
           [data-video][data-controls="false"][data-paused="true"] .ext_progress_bar {
             opacity: 0;
           }
+          /*
           .ember-chat .chat-messages .timestamp{
             min-width: 30px;
             float: left;
@@ -434,6 +435,7 @@ const VideoScroller = (function videoScroller() {
           .chat-line .badges > .broadcaster {
             display: none !important;
           }
+          */
           .player-playback-stats {
             top: 0;
             left: 0;
@@ -450,6 +452,10 @@ const VideoScroller = (function videoScroller() {
           }
           .player-playback-stats button {
             display: none;
+          }
+          .video-watched {
+            background: #000;
+            filter: contrast(60%);
           }
         `);
 
