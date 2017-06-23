@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.0.9
+// @version     3.0.10
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -951,14 +951,14 @@ const VideoScroller = (function videoScroller() {
       stopAutoplay(player) {
         const TIMESTAMP_REGEX = /[?#&](?:star)?t(?:ime(?:_continue)?)?=/i;
         const hasTimeStamp = window.location.href.match(TIMESTAMP_REGEX);
-        const isDrive = window.top.location.hostname === 'drive.google.com';
+        const isGoogleApiEmbed = window.location.hostname === 'youtube.googleapis.com';
         const state = player.getPlayerState();
         LOGGER.log('player found; state =', state);
         if (state === 1) {
           if (this.stopNextAutoplay) {
             LOGGER.log('stopping player');
             this.stopNextAutoplay = false;
-            if (hasTimeStamp || isDrive) {
+            if (hasTimeStamp || isGoogleApiEmbed) {
               player.pauseVideo();
             } else {
               player.stopVideo();
@@ -972,7 +972,7 @@ const VideoScroller = (function videoScroller() {
               if (this.stopNextAutoplay) {
                 LOGGER.log('stopping player');
                 this.stopNextAutoplay = false;
-                if (hasTimeStamp || isDrive) {
+                if (hasTimeStamp || isGoogleApiEmbed) {
                   player.pauseVideo();
                 } else {
                   player.stopVideo();
