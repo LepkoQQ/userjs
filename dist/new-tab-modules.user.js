@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        New Tab Info Boxes
 // @namespace   http://lepko.net/
-// @version     2.0.1
+// @version     2.0.2
 // @run-at      document-start
 // @match       *://www.google.com/_/chrome/newtab*
 // @match       *://www.google.com/_/open/404
@@ -33,7 +33,7 @@
   _.addCSS(`
     html,
     iframe {
-      background: #1e1e1e !important;
+      background: #181c25 !important;
     }
     body {
       display: none !important;
@@ -86,7 +86,7 @@
       a:visited,
       a:active {
         cursor: pointer;
-        color: #3F51B5;
+        color: #4095bf;
         text-decoration: none;
         font-weight: 700;
       }
@@ -109,8 +109,10 @@
         width: 550px;
         margin: 20px;
         padding: 0 10px 10px 10px;
-        background: #fff;
+        background: #232730;
         color: #000;
+        box-shadow: 2px 2px 2px 0px #101319;
+        border-radius: 3px;
         transition: opacity 0.5s;
         opacity: 0;
       }
@@ -127,12 +129,12 @@
         border-collapse: collapse;
       }
       .ext_popbox table tr:hover {
-        background: #eee;
+        background: #2b303b;
       }
       .ext_popbox table tr td {
-        border: 1px solid #ccc;
+        border: 1px solid #3a3d45;
         padding: 5px 7px;
-        color: #000;
+        color: #b4b8c1;
         text-align: left;
         vertical-align: top;
         overflow: hidden;
