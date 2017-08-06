@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.0.10
+// @version     3.1.0
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -374,68 +374,6 @@ const VideoScroller = (function videoScroller() {
           [data-video][data-controls="false"][data-paused="true"] .ext_progress_bar {
             opacity: 0;
           }
-          /*
-          .ember-chat .chat-messages .timestamp{
-            min-width: 30px;
-            float: left;
-          }
-          .ember-chat .chat-messages .badges {
-            float: left;
-            clear: left;
-            margin-top: 3px;
-            text-align: right;
-            width: 36px;
-            height: 18px;
-          }
-          .ember-chat .chat-messages .chat-lines .chat-line {
-            font-size: 0;
-          }
-          .ember-chat .chat-messages .chat-lines .chat-line .from,
-          .ember-chat .chat-messages .chat-lines .chat-line .message {
-            font-size: 13.3333px;
-          }
-          .ember-chat .chat-messages .chat-lines .chat-line .from {
-            display: inline-block;
-            margin-left: 6px;
-            line-height: 18px;
-          }
-          .ember-chat .chat-messages .chat-lines .chat-line .message {
-            display: block;
-            margin-left: 42px;
-            min-height: 18px;
-          }
-          .chat-line .timestamp {
-            font-size: 11px;
-            font-weight: bold;
-            padding: 1px 4px;
-            background-color: rgba(77, 77, 77, 0.3);
-          }
-          .chat-line .badges .badge {
-            margin: 0 !important;
-          }
-          .chat-line .badges > a[href*="cheering"],
-          .chat-line .badges > [class^="twitch-bits"],
-          .chat-line .badges > a[href*="twitch.amazon.com/prime"],
-          .chat-line .badges > [class^="twitch-premium"],
-          .chat-line .badges > a[href*="products/turbo"],
-          .chat-line .badges > .turbo {
-            display: none !important;
-          }
-          .chat-line .badges > .bot,
-          .chat-line .badges img[original-title="Moderator"],
-          .chat-line .badges > .moderator,
-          .chat-line .badges img[original-title="Twitch Admin"],
-          .chat-line .badges img[original-title="Admin"],
-          .chat-line .badges > .admin,
-          .chat-line .badges img[original-title="Global Moderator"],
-          .chat-line .badges > .global-moderator,
-          .chat-line .badges img[original-title="Twitch Staff"],
-          .chat-line .badges > .staff,
-          .chat-line .badges img[original-title="Broadcaster"],
-          .chat-line .badges > .broadcaster {
-            display: none !important;
-          }
-          */
           .player-playback-stats {
             top: 0;
             left: 0;
@@ -874,19 +812,22 @@ const VideoScroller = (function videoScroller() {
           container.insertBefore(element, container.firstChild);
           return element.firstChild;
         },
-        getPlaybackRate(player) {
-          return player.getPlaybackRate();
-        },
         changeSpeed(player, increase) {
-          const rates = player.getAvailablePlaybackRates();
-          const speed = player.getPlaybackRate();
-          const index = rates.indexOf(speed);
-          const newIndex = increase ? (index + 1) : (index - 1);
-          if (newIndex >= 0 && newIndex < rates.length) {
-            const newSpeed = rates[newIndex];
-            player.setPlaybackRate(newSpeed);
+          const step = 0.25;
+          const video = _.get('video', player);
+          const speed = video.playbackRate;
+          const newSpeed = increase ? (speed + step) : (speed - step);
+          if (newSpeed > 0) {
+            const rates = player.getAvailablePlaybackRates();
+            const index = rates.indexOf(newSpeed);
+            if (index !== -1) {
+              player.setPlaybackRate(newSpeed);
+            } else {
+              video.playbackRate = newSpeed;
+            }
+            video.playbackRate = newSpeed;
           }
-          return player.getPlaybackRate();
+          return video.playbackRate;
         },
         getVideoDuration(player) {
           return player.getDuration();
