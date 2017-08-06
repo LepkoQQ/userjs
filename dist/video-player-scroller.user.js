@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.1.1
+// @version     3.1.2
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -588,21 +588,6 @@ const VideoScroller = (function videoScroller() {
           const element = _.create('button.player-button', { style: 'text-align:center;padding-top:5px', textContent: '1x' });
           container.insertBefore(element, container.firstElementChild);
           return element;
-        },
-        isPaused(player) {
-          return player.dataset.paused === "true";
-        },
-        playOrPause(player) {
-          const persistentPlayer = App.__container__.lookup('service:persistent-player');
-          if (persistentPlayer && persistentPlayer.playerComponent && persistentPlayer.playerComponent.player) {
-            if (player.dataset.paused === "true") {
-              persistentPlayer.playerComponent.player.play();
-            } else {
-              persistentPlayer.playerComponent.player.pause();
-            }
-            return true;
-          }
-          return false;
         },
       },
       playerLoaded(player) {
