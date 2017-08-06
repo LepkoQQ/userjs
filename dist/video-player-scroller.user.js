@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.1.0
+// @version     3.1.1
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -189,7 +189,9 @@ const VideoScroller = (function videoScroller() {
 
       // add key shortcuts
       this.onKeyDown = this.onKeyDown.bind(this);
+      this.onKeyUp = this.onKeyUp.bind(this);
       document.addEventListener('keydown', this.onKeyDown, true);
+      document.addEventListener('keyup', this.onKeyUp, true);
 
       this.options.logger.log('created scroller');
     }
@@ -212,6 +214,7 @@ const VideoScroller = (function videoScroller() {
       this.progressFill = null;
 
       document.removeEventListener('keydown', this.onKeyDown, true);
+      document.removeEventListener('keyup', this.onKeyUp, true);
 
       this.destroyed = true;
 
@@ -227,6 +230,9 @@ const VideoScroller = (function videoScroller() {
           if (this.options.playOrPause(this.player)) {
             event.preventDefault();
             event.stopPropagation();
+            if (event.code === 'KeyK') {
+              this.wasKeyKDown = true;
+            }
           }
           break;
         }
@@ -254,6 +260,14 @@ const VideoScroller = (function videoScroller() {
         }
         default:
           break;
+      }
+    }
+
+    onKeyUp(event) {
+      if (event.code === 'KeyK' && this.wasKeyKDown) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.wasKeyKDown = false;
       }
     }
 
@@ -574,6 +588,21 @@ const VideoScroller = (function videoScroller() {
           const element = _.create('button.player-button', { style: 'text-align:center;padding-top:5px', textContent: '1x' });
           container.insertBefore(element, container.firstElementChild);
           return element;
+        },
+        isPaused(player) {
+          return player.dataset.paused === "true";
+        },
+        playOrPause(player) {
+          const persistentPlayer = App.__container__.lookup('service:persistent-player');
+          if (persistentPlayer && persistentPlayer.playerComponent && persistentPlayer.playerComponent.player) {
+            if (player.dataset.paused === "true") {
+              persistentPlayer.playerComponent.player.play();
+            } else {
+              persistentPlayer.playerComponent.player.pause();
+            }
+            return true;
+          }
+          return false;
         },
       },
       playerLoaded(player) {
