@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        New Tab Info Boxes
 // @namespace   http://lepko.net/
-// @version     2.0.2
+// @version     2.0.3
 // @run-at      document-start
 // @match       *://www.google.com/_/chrome/newtab*
 // @match       *://www.google.com/_/open/404
@@ -401,7 +401,8 @@
             title: 'Live Channels - Following',
             url: 'https://www.twitch.tv/directory/following/live',
           };
-          obj.entries = jsonR.streams || [];
+          const entries = jsonR.streams || [];
+          obj.entries = entries.filter(entry => entry.stream_type === 'live');
           return obj;
         },
         cacheLength: (1000 * 60 * 5),
