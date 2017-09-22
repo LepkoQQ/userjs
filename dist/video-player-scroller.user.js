@@ -479,7 +479,10 @@ const VideoScroller = (function videoScroller() {
       },
       waitForChat() {
         const chat = _.get('.ember-chat');
-        this.chatLoaded(chat);
+        // TODO: Chat Replay and Chat on Videos is not detected (that now a react component)
+        if (chat) {
+          this.chatLoaded(chat);
+        }
       },
       chatLoaded(chat) {
         LOGGER.log('observing chat...');
