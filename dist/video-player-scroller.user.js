@@ -412,11 +412,12 @@ const VideoScroller = (function videoScroller() {
         `);
 
         if (window.location.hostname === 'clips.twitch.tv') {
-          LOGGER.log('clips');
-          const player = _.get('.js-player');
-          if (player) {
-            this.playerLoaded(player);
-          }
+          LOGGER.log('clips (video scroller disabled for now)');
+          // TODO: re-enable clips player with a react hook
+          // const player = _.get('.js-player');
+          // if (player) {
+          //   this.playerLoaded(player);
+          // }
         } else if (window.location.hostname === 'player.twitch.tv') {
           LOGGER.log('embed');
           this.waitForPlayer('#video-playback');
@@ -562,9 +563,6 @@ const VideoScroller = (function videoScroller() {
         _.waitFor(() => {
           const player = _.get(selector);
           if (player && player.dataset.initializing === 'false') {
-            if (player.dataset.contentStream === 'vod') {
-              return player.dataset.video ? player : false;
-            }
             return player;
           }
           return false;
@@ -589,11 +587,94 @@ const VideoScroller = (function videoScroller() {
           container.insertBefore(element, container.firstElementChild);
           return element;
         },
+        getPlaybackRate() {
+          const playerApi = this.getPlayerApi();
+          if (playerApi) {
+            return playerApi.getPlaybackRate();
+          }
+          return 1;
+        },
+        changeSpeed(player, increase) {
+          const playerApi = this.getPlayerApi();
+          if (playerApi) {
+            const step = 0.25;
+            const speed = playerApi.getPlaybackRate();
+            const newSpeed = increase ? (speed + step) : (speed - step);
+            if (newSpeed > 0) {
+              playerApi.setPlaybackRate(newSpeed);
+            }
+            return playerApi.getPlaybackRate();
+          }
+          return 1;
+        },
+        getVideoDuration() {
+          const playerApi = this.getPlayerApi();
+          if (playerApi) {
+            return playerApi.getDuration();
+          }
+          return 0;
+        },
+        getCurrentTime() {
+          const playerApi = this.getPlayerApi();
+          if (playerApi) {
+            return playerApi.getCurrentTime();
+          }
+          return 0;
+        },
+        isPaused() {
+          const playerApi = this.getPlayerApi();
+          if (playerApi) {
+            return playerApi.isPaused();
+          }
+          return true;
+        },
+        playOrPause() {
+          const playerApi = this.getPlayerApi();
+          if (playerApi) {
+            if (playerApi.isPaused()) {
+              playerApi.play();
+            } else {
+              playerApi.pause();
+            }
+            return true;
+          }
+          return false;
+        },
+        seekVideo(player, event) {
+          const playerApi = this.getPlayerApi();
+          if (playerApi) {
+            const forward = event.code === 'ArrowRight' || event.code === 'KeyL';
+            let step = 5;
+            if (!event.ctrlKey && !event.altKey && !event.shiftKey) {
+              step = 5;
+            } else if (event.ctrlKey && !event.altKey && !event.shiftKey) {
+              step = 10;
+            } else if (!event.ctrlKey && event.altKey && !event.shiftKey) {
+              step = 20;
+            }
+            const playerTime = playerApi.getCurrentTime();
+            if (playerTime) {
+              const newTime = forward ? (playerTime + step) : (playerTime - step);
+              playerApi.setCurrentTime(newTime);
+              return true;
+            }
+            return false;
+          }
+          return false;
+        },
+        // TWITCH PLAYER COMPONENT API
+        getPlayerApi() {
+          const playerService = window.App.__container__.lookup('service:persistent-player'); // eslint-disable-line no-underscore-dangle
+          if (playerService && playerService.playerComponent) {
+            return playerService.playerComponent.player;
+          }
+          return null;
+        },
       },
       playerLoaded(player) {
         LOGGER.log('player loaded');
 
-        if (player.dataset.contentStream === 'vod') {
+        if (player.dataset.video) {
           this.vodStart = 0;
           this.getVodTime(player);
         }
