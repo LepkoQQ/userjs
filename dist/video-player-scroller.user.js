@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.1.3
+// @version     3.1.4
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -605,8 +605,9 @@ const VideoScroller = (function videoScroller() {
             const newSpeed = increase ? (speed + step) : (speed - step);
             if (newSpeed > 0) {
               playerApi.setPlaybackRate(newSpeed);
+              return newSpeed;
             }
-            return playerApi.getPlaybackRate();
+            return speed;
           }
           return 1;
         },
