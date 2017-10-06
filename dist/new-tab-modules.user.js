@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        New Tab Info Boxes
 // @namespace   http://lepko.net/
-// @version     2.0.3
+// @version     2.0.4
 // @run-at      document-start
 // @match       *://www.google.com/_/chrome/newtab*
 // @match       *://www.google.com/_/open/404
@@ -279,7 +279,10 @@
           return 'UTC'; // Twitch events api returs ISO time strings with UTC time
         },
         getEntries(resp) {
-          return resp.events;
+          const cutoff = moment().subtract(1, 'days');
+          const filtered = resp.events.filter(event => moment(event.start_time) > cutoff);
+          filtered.sort((a, b) => moment(a.start_time) - moment(b.start_time));
+          return filtered;
         },
         getName(entry) {
           return entry.title;
