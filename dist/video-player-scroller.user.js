@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.1.6
+// @version     3.1.7
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -139,21 +139,14 @@ const VideoScroller = (function videoScroller() {
       return true;
     },
     seekVideo(player, event) {
-      const forward = event.code === 'ArrowRight' || event.code === 'KeyL';
-      let step = 5;
-      if (!event.ctrlKey && !event.altKey && !event.shiftKey) {
-        step = 5;
-      } else if (event.ctrlKey && !event.altKey && !event.shiftKey) {
-        step = 10;
-      } else if (!event.ctrlKey && event.altKey && !event.shiftKey) {
-        step = 20;
-      }
-      const video = _.get('video', player);
-      const playerTime = video.currentTime;
-      if (playerTime) {
-        const newTime = forward ? (playerTime + step) : (playerTime - step);
-        video.currentTime = newTime;
-        return true;
+      const step = VideoScroller.getStepSizeFromKeyEvent(event);
+      if (step !== 0) {
+        const video = _.get('video', player);
+        const playerTime = video.currentTime;
+        if (playerTime) {
+          video.currentTime = playerTime + step;
+          return true;
+        }
       }
       return false;
     },
@@ -363,6 +356,25 @@ const VideoScroller = (function videoScroller() {
         this.player.removeAttribute('data-ext_volume_timeout');
       }, 2000);
       this.player.setAttribute('data-ext_volume_timeout', newTid);
+    }
+
+    static getStepSizeFromKeyEvent(event) {
+      if (!['KeyJ', 'KeyL', 'ArrowLeft', 'ArrowRight'].includes(event.code)) {
+        return 0;
+      }
+
+      const noModsDown = !event.ctrlKey && !event.altKey && !event.shiftKey;
+      const isCtrlDown = event.ctrlKey && !event.altKey && !event.shiftKey;
+      const isAltDown = !event.ctrlKey && event.altKey && !event.shiftKey;
+      const isShiftDown = !event.ctrlKey && !event.altKey && event.shiftKey;
+
+      // eslint-disable-next-line no-nested-ternary
+      const step = (noModsDown || isShiftDown) ? 5 : isCtrlDown ? 10 : isAltDown ? 20 : 0;
+
+      const direction = (event.code === 'ArrowRight' || event.code === 'KeyL') ? 1 : -1;
+      const multiplier = (event.code === 'ArrowLeft' || event.code === 'ArrowRight') ? 1 : 18;
+
+      return step * multiplier * direction;
     }
   };
 }());
@@ -646,23 +658,13 @@ const VideoScroller = (function videoScroller() {
         },
         seekVideo(player, event) {
           const playerApi = this.getPlayerApi();
-          if (playerApi) {
-            const forward = event.code === 'ArrowRight' || event.code === 'KeyL';
-            let step = 5;
-            if (!event.ctrlKey && !event.altKey && !event.shiftKey) {
-              step = 5;
-            } else if (event.ctrlKey && !event.altKey && !event.shiftKey) {
-              step = 10;
-            } else if (!event.ctrlKey && event.altKey && !event.shiftKey) {
-              step = 20;
-            }
+          const step = VideoScroller.getStepSizeFromKeyEvent(event);
+          if (playerApi && step !== 0) {
             const playerTime = playerApi.getCurrentTime();
             if (playerTime) {
-              const newTime = forward ? (playerTime + step) : (playerTime - step);
-              playerApi.setCurrentTime(newTime);
+              playerApi.setCurrentTime(playerTime + step);
               return true;
             }
-            return false;
           }
           return false;
         },
@@ -948,20 +950,13 @@ const VideoScroller = (function videoScroller() {
           return true;
         },
         seekVideo(player, event) { // eslint-disable-line no-unused-vars
-          const forward = event.code === 'ArrowRight' || event.code === 'KeyL';
-          let step = 5;
-          if (!event.ctrlKey && !event.altKey && !event.shiftKey) {
-            step = 5;
-          } else if (event.ctrlKey && !event.altKey && !event.shiftKey) {
-            step = 10;
-          } else if (!event.ctrlKey && event.altKey && !event.shiftKey) {
-            step = 20;
-          }
-          const playerTime = player.getCurrentTime();
-          if (playerTime) {
-            const newTime = forward ? (playerTime + step) : (playerTime - step);
-            player.seekTo(newTime, true);
-            return true;
+          const step = VideoScroller.getStepSizeFromKeyEvent(event);
+          if (step !== 0) {
+            const playerTime = player.getCurrentTime();
+            if (playerTime) {
+              player.seekTo(playerTime + step, true);
+              return true;
+            }
           }
           return false;
         },
