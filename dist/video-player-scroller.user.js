@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.1.4
+// @version     3.1.5
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -388,26 +388,26 @@ const VideoScroller = (function videoScroller() {
           [data-video][data-controls="false"][data-paused="true"] .ext_progress_bar {
             opacity: 0;
           }
-          .player-playback-stats {
+          .pl-playback-stats {
             top: 0;
             left: 0;
             padding: 0;
             line-height: 11px;
             width: 175px;
           }
-          .player-playback-stats li {
+          .pl-playback-stats--stat {
             padding: 0;
             font-size: 10px;
           }
-          .player-playback-stats li div {
+          .pl-playback-stats--stat div {
             padding-left: 0;
           }
-          .player-playback-stats button {
+          .pl-playback-stats .player-button--close {
             display: none;
           }
-          .video-watched {
-            background: #000;
-            filter: contrast(60%);
+          .video-preview-card__image-wrapper--watched {
+            opacity: 0.2;
+            filter: contrast(30%);
           }
         `);
 
