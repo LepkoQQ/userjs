@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        TV Calendar Search
 // @namespace   http://lepko.net/
-// @version     1.0.3
+// @version     1.0.4
 // @run-at      document-start
 // @match       *://*.pogdesign.co.uk/cat/*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js
@@ -89,13 +89,6 @@ const AsyncMenu = (function asyncMenu() {
       border-right-color: transparent;
       border-radius: 50% !important;
       animation: ext_spinner 1s infinite linear;
-    }
-    #ext_buttoncontainer {
-      text-align: center;
-      padding: 5px;
-    }
-    #tvcalendar > #data > .replace {
-      display: none;
     }
   `);
 
@@ -265,6 +258,10 @@ const AsyncMenu = (function asyncMenu() {
     #cal.ext_hidewatched .ep.infochecked {
       display: none;
     }
+    #ext_buttoncontainer {
+      text-align: center;
+      padding: 5px;
+    }
     button.ext_togglewatched {
       border: 0;
       background: #444;
@@ -277,7 +274,9 @@ const AsyncMenu = (function asyncMenu() {
     button.ext_togglewatched:hover {
       opacity: 0.9;
     }
-    footer {
+    #tvcalendar > .newpbutts,
+    #tvcalendar > #data > footer,
+    #tvcalendar > #data > .replace {
       display: none;
     }
   `);
