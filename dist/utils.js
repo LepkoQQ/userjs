@@ -144,6 +144,9 @@ const _ = (function utils() {
     isInputActive() {
       return document.activeElement && (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable);
     },
+    has(object, key) {
+      return Object.prototype.hasOwnProperty.call(object, key);
+    },
     getKey(object, path, defaultValue) {
       const pathArray = typeof path === 'string' ? [path] : path;
       let value = object;
