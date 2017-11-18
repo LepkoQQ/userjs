@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.1.8
+// @version     3.1.9
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -13,7 +13,7 @@
 // @exclude     *.html
 // @exclude     *.html?*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/02a2d6a8d5d9dc06e8c2792c49f652164be49eff/dist/utils.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/c3dc35088be29f99d0e60da97979dcb01d26ee7e/dist/utils.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
