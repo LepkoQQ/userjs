@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.1.9
+// @version     3.1.10
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -786,10 +786,12 @@ const VideoScroller = (function videoScroller() {
   };
 
   const site = Object.entries(sites).find(([key]) => window.location.hostname.includes(key));
-  LOGGER = LOGGER.push(site[0]);
+  if (site) {
+    LOGGER = LOGGER.push(site[0]);
 
-  document.addEventListener('DOMContentLoaded', () => {
-    LOGGER.log('ready', window.location.href);
-    site[1].addRouteChangeListeners();
-  });
+    document.addEventListener('DOMContentLoaded', () => {
+      LOGGER.log('ready', window.location.href);
+      site[1].addRouteChangeListeners();
+    });
+  }
 }(this.unsafeWindow || window));
