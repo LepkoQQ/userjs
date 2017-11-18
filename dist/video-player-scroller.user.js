@@ -12,7 +12,7 @@
 // @exclude     *.js
 // @exclude     *.html
 // @exclude     *.html?*
-// @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.2/moment.min.js
 // @require     https://raw.githubusercontent.com/LepkoQQ/userjs/c3dc35088be29f99d0e60da97979dcb01d26ee7e/dist/utils.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue

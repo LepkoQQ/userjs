@@ -6,9 +6,9 @@
 // @match       *://www.google.com/_/chrome/newtab*
 // @match       *://www.google.com/_/open/404
 // @match       *://lepko.net/twitchauth
-// @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js
-// @require     https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.11/moment-timezone-with-data-2010-2020.min.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/02a2d6a8d5d9dc06e8c2792c49f652164be49eff/dist/utils.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.2/moment.min.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.14/moment-timezone-with-data-2012-2022.min.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/c3dc35088be29f99d0e60da97979dcb01d26ee7e/dist/utils.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
