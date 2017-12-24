@@ -52,14 +52,12 @@ const _ = (function utils() {
       });
       return observer;
     },
-    // TODO: check this out: https://stackoverflow.com/questions/17888039/javascript-efficient-parsing-of-css-selector
-    // TODO: dont name parameters as blankIn
-    create(tagIn, attrs) {
+    create(selector, attrs) {
       let tag = 'div';
       let id;
       const classes = new Set();
-      if (tagIn.includes('#') || tagIn.includes('.')) {
-        const parts = _.replaceAll(_.replaceAll(tagIn, '.', '|.'), '#', '|#').split('|');
+      if (selector.includes('#') || selector.includes('.')) {
+        const parts = _.replaceAll(_.replaceAll(selector, '.', '|.'), '#', '|#').split('|');
         parts.forEach((part) => {
           if (part[0] === '#') {
             id = part.substr(1);
@@ -70,7 +68,7 @@ const _ = (function utils() {
           }
         });
       } else {
-        tag = tagIn;
+        tag = selector;
       }
       const element = document.createElement(tag);
       if (id) {
