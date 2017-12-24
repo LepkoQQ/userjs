@@ -1,5 +1,5 @@
 /* global _:false, moment:false */
-const VolumeScroller = (function createVolumeScroller() {
+const VideoScroller = (function createVideoScroller() {
   'use strict';
 
   _.addCSS(`
@@ -112,7 +112,7 @@ const VolumeScroller = (function createVolumeScroller() {
       return true;
     },
     seekVideo(player, event) {
-      const step = VolumeScroller.getStepSizeFromKeyEvent(event);
+      const step = VideoScroller.getStepSizeFromKeyEvent(event);
       if (step !== 0) {
         const video = _.get('video', player);
         const playerTime = video.currentTime;
@@ -126,7 +126,7 @@ const VolumeScroller = (function createVolumeScroller() {
   };
 
   // eslint-disable-next-line no-shadow
-  return class VolumeScroller {
+  return class VideoScroller {
     constructor(player, options = {}) {
       this.player = player;
       this.options = Object.assign({}, DEFAULT_OPTIONS, options);
