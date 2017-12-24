@@ -109,6 +109,13 @@ const _ = (function utils() {
       }
       return element;
     },
+    getOrCreate(selector, parent, before = null) {
+      const el = _.get(selector, parent);
+      if (el) {
+        return el;
+      }
+      return parent.insertBefore(_.create(selector), before);
+    },
     addCSS(css) {
       const style = _.get('style#ext_css') || document.head.parentNode.insertBefore(_.create('style#ext_css'), document.head.nextSibling);
       style.insertAdjacentHTML('beforeend', css);
