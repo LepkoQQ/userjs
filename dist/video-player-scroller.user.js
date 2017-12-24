@@ -13,8 +13,8 @@
 // @exclude     *.html
 // @exclude     *.html?*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.2/moment.min.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/4b7a890aceca20f409598999ee88501c6a7a611a/dist/utils/utils.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/4b7a890aceca20f409598999ee88501c6a7a611a/dist/utils/volumescroller.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/fe1ef221ebb4f5ceb8554fe165bac96503ef6245/dist/utils/utils.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/fe1ef221ebb4f5ceb8554fe165bac96503ef6245/dist/utils/videoscroller.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
