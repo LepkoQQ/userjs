@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.1.10
+// @version     3.2.0
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -15,6 +15,7 @@
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.2/moment.min.js
 // @require     https://raw.githubusercontent.com/LepkoQQ/userjs/fe1ef221ebb4f5ceb8554fe165bac96503ef6245/dist/utils/utils.js
 // @require     https://raw.githubusercontent.com/LepkoQQ/userjs/fe1ef221ebb4f5ceb8554fe165bac96503ef6245/dist/utils/videoscroller.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/fe1ef221ebb4f5ceb8554fe165bac96503ef6245/dist/utils/reacthook.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -24,12 +25,268 @@
 // @connect     googleapis.com
 // ==/UserScript==
 
-/* global _:false, moment:false */
+/* global _:false, moment:false, VideoScroller:false, ReactHook:false */
 (function main(window) {
   'use strict';
 
   let LOGGER = _.logger('video player scroller');
   LOGGER.log('starting...');
+
+  const twitchHook = () => {
+    LOGGER.log('twitch hook');
+
+    _.addCSS(`
+      .ext_progress_bar {
+        opacity: 0;
+      }
+      [data-video][data-controls="false"] .ext_progress_bar {
+        opacity: 1;
+      }
+      [data-video][data-controls="false"][data-paused="true"] .ext_progress_bar {
+        opacity: 0;
+      }
+      body .pl-playback-stats {
+        top: 0;
+        left: 0;
+        padding: 0;
+        line-height: 11px;
+        width: 175px;
+      }
+      body .pl-playback-stats--stat {
+        padding: 0;
+        font-size: 10px;
+      }
+      body .pl-playback-stats--stat div {
+        padding-left: 0;
+      }
+      body .pl-playback-stats .player-button--close {
+        display: none;
+      }
+      body .video-preview-card__image-wrapper--watched {
+        opacity: 0.2;
+        filter: contrast(30%);
+      }
+      .__ext__vod_date {
+        font-size: 1.2rem;
+      }
+      .__ext__vod_date::before {
+        content: '·';
+        margin: 0 5px;
+      }
+    `);
+
+    function createScrollerOptions(playerApi) {
+      return {
+        logger: LOGGER,
+        color: '#a991d4',
+        getRightOffset(player) { // eslint-disable-line no-unused-vars
+          return 10;
+        },
+        getBottomOffset(player) { // eslint-disable-line no-unused-vars
+          return 88;
+        },
+        getSpeedContainerElement(player) {
+          return _.get('.player-buttons-right', player);
+        },
+        addSpeedTextElement(container) {
+          const element = _.create('button.player-button', { style: 'text-align:center;padding-top:5px', textContent: '1x' });
+          container.insertBefore(element, container.firstElementChild);
+          return element;
+        },
+        getPlaybackRate() {
+          if (playerApi) {
+            return playerApi.getPlaybackRate();
+          }
+          return 1;
+        },
+        changeSpeed(player, increase) {
+          if (playerApi) {
+            const step = 0.25;
+            const speed = playerApi.getPlaybackRate();
+            const newSpeed = increase ? (speed + step) : (speed - step);
+            if (newSpeed > 0) {
+              playerApi.setPlaybackRate(newSpeed);
+              return newSpeed;
+            }
+            return speed;
+          }
+          return 1;
+        },
+        getVideoDuration() {
+          if (playerApi) {
+            return playerApi.getDuration();
+          }
+          return 0;
+        },
+        getCurrentTime() {
+          if (playerApi) {
+            return playerApi.getCurrentTime();
+          }
+          return 0;
+        },
+        isPaused() {
+          if (playerApi) {
+            return playerApi.isPaused();
+          }
+          return true;
+        },
+        playOrPause() {
+          if (playerApi) {
+            if (playerApi.isPaused()) {
+              playerApi.play();
+            } else {
+              playerApi.pause();
+            }
+            return true;
+          }
+          return false;
+        },
+        seekVideo(player, event) {
+          const step = VideoScroller.getStepSizeFromKeyEvent(event);
+          if (playerApi && step !== 0) {
+            const playerTime = playerApi.getCurrentTime();
+            if (playerTime) {
+              playerApi.setCurrentTime(playerTime + step);
+              return true;
+            }
+          }
+          return false;
+        },
+      };
+    }
+
+    function hasAll(obj, keys) {
+      const objKeys = Object.keys(obj);
+      return keys.every(k => objKeys.includes(k));
+    }
+
+    function ajax(url) {
+      return _.ajax(url, {
+        attrs: {
+          headers: {
+            'Client-ID': 'a936j1ucnma1ucntkp2qf8vepul2tnn',
+          },
+        },
+        logger: LOGGER,
+      });
+    }
+
+    function formatUptime(m) {
+      const difference = moment().diff(m);
+      const duration = moment.duration(difference);
+      const hours = duration.asHours();
+      const hoursString = (hours < 1) ? '' : `${Math.floor(hours)} hour${hours < 2 ? '' : 's'} `;
+      return `Uptime: ${hoursString}${duration.minutes()} minutes`;
+    }
+
+    (async () => {
+      const hook = await ReactHook.create('#root [data-reactroot]');
+      LOGGER.log('created react hook', hook);
+
+      hook.findComponent('videoInfoBar', c => hasAll(c.props, ['video', 'collectionID', 'currentUser', 'lastVideoOffset']))
+        .then((wrappedComponent) => {
+          LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
+
+          wrappedComponent.wrap({
+            componentDidUpdate() {
+              // add video publish datetime on vods
+              if (this.props.video && this.props.video.publishedAt) {
+                const elem = hook.getDOMElement(this);
+                const titleElem = _.get('.tw-card .tw-card-body p[title]', elem);
+                if (titleElem) {
+                  const addedElem = _.getOrCreate('span.__ext__vod_date', titleElem);
+                  addedElem.textContent = moment(this.props.video.publishedAt).format('dddd, D MMMM YYYY, HH:mm');
+                }
+              }
+            },
+          });
+        });
+
+      hook.findComponent('channel-info-bar', c => c.getGame && c.getTitle && c.renderCommunities)
+        .then((wrappedComponent) => {
+          LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
+
+          const uptimes = new WeakMap();
+
+          wrappedComponent.wrap({
+            componentDidUpdate() {
+              // add uptime under live stream
+              if (this.props.channelLogin && !this.props.channelIsHosting) {
+                const elem = hook.getDOMElement(this);
+                const actionContainer = _.get('.channel-info-bar__action-container > .tw-flex', elem);
+                if (actionContainer) {
+                  const addedElem = _.getOrCreate('span.__ext__uptime.tw-mg-r-1', actionContainer, actionContainer.firstChild);
+                  if (uptimes.has(this) && uptimes.get(this).startedAt) {
+                    addedElem.textContent = formatUptime(uptimes.get(this).startedAt);
+                  } else if (!uptimes.has(this) || !uptimes.get(this).loading) {
+                    uptimes.set(this, { loading: true });
+                    ajax(`https://api.twitch.tv/helix/streams?user_login=${this.props.channelLogin}`).send()
+                      .then((response) => {
+                        if (uptimes.has(this)) {
+                          uptimes.set(this, { loading: false });
+                          const jsonR = JSON.parse(response);
+                          if (jsonR.data && jsonR.data.length) {
+                            const startedAt = moment(jsonR.data[0].started_at);
+                            uptimes.set(this, { startedAt });
+                            addedElem.textContent = formatUptime(startedAt);
+                          }
+                        }
+                      });
+                  }
+                }
+              }
+            },
+            componentWillUnmount() {
+              uptimes.delete(this);
+            },
+          });
+        });
+
+      hook.findComponent('videoPreviewCard', c => c.onMouseEnterHandler && c.onMouseLeaveHandler && c.onPreviewImageLoad && c.onPreviewImageLoadError)
+        .then((wrappedComponent) => {
+          LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
+
+          // Fix 100% watched vods not being marked as watched
+          // eslint-disable-next-line no-underscore-dangle
+          const proto = wrappedComponent._component.prototype;
+          const origWatchPercentage = proto.getVideoPreviousWatchPercentage;
+          proto.getVideoPreviousWatchPercentage = function fixedWatchPercentage() {
+            if (this.props.video && this.props.video.self && this.props.video.self.viewingHistory) {
+              if (this.props.video.self.viewingHistory.position === 0) {
+                return 100;
+              }
+            }
+            return origWatchPercentage.call(this);
+          };
+          // eslint-disable-next-line no-underscore-dangle
+          wrappedComponent._instances.forEach(instance => instance.forceUpdate());
+        });
+
+      hook.findComponent('player', c => c.onPlayerReady && c.onPlayerPlay)
+        .then((wrappedComponent) => {
+          LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
+
+          const scrollers = new WeakMap();
+
+          wrappedComponent.wrap({
+            componentDidUpdate() {
+              if (!scrollers.has(this)) {
+                const elem = hook.getDOMElement(this);
+                scrollers.set(this, new VideoScroller(elem, createScrollerOptions(this.player)));
+              }
+            },
+            componentWillUnmount() {
+              if (scrollers.has(this)) {
+                scrollers.get(this).destroy();
+                scrollers.delete(this);
+              }
+            },
+          });
+        });
+    })().catch((error) => {
+      LOGGER.error('Async Error:', error);
+    });
+  };
 
   const sites = {
     youtube: {
@@ -428,6 +685,9 @@
           return element;
         },
       },
+    },
+    twitch: {
+      addRouteChangeListeners: twitchHook,
     },
   };
 
