@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.2.0
+// @version     3.2.1
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -270,9 +270,9 @@
 
           wrappedComponent.wrap({
             componentDidUpdate() {
-              if (!scrollers.has(this)) {
-                const elem = hook.getDOMElement(this);
-                scrollers.set(this, new VideoScroller(elem, createScrollerOptions(this.player)));
+              if (this.playerRef && this.player && !scrollers.has(this)) {
+                const vs = new VideoScroller(this.playerRef, createScrollerOptions(this.player));
+                scrollers.set(this, vs);
               }
             },
             componentWillUnmount() {
