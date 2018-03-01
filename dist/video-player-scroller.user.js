@@ -156,8 +156,11 @@
     }
 
     function hasAll(obj, keys) {
-      const objKeys = Object.keys(obj);
-      return keys.every(k => objKeys.includes(k));
+      if (obj != null) {
+        const objKeys = Object.keys(obj);
+        return keys.every(k => objKeys.includes(k));
+      }
+      return false;
     }
 
     function ajax(url) {
@@ -180,7 +183,7 @@
     }
 
     (async () => {
-      const hook = await ReactHook.create('#root [data-reactroot]');
+      const hook = await ReactHook.create('#root');
       LOGGER.log('created react hook', hook);
 
       hook.findComponent('videoInfoBar', c => hasAll(c.props, ['video', 'collectionID', 'currentUser', 'lastVideoOffset']))

@@ -16,10 +16,11 @@ const ReactHook = (function createReactHook() {
   };
 
   class WrappedComponent {
-    constructor(name, Component, instances) {
+    constructor(name, Component, instances, hookInstance) {
       this.name = name;
       this._component = ensureNotWrapped(Component, this);
       this._instances = instances;
+      this._hookInstance = hookInstance;
     }
 
     wrap(methods) {
@@ -28,7 +29,7 @@ const ReactHook = (function createReactHook() {
         if (typeof func === 'function') {
           if (key === 'componentDidMount') {
             this._instances
-              .filter(i => i._reactInternalInstance && i._reactInternalInstance._renderedComponent)
+              .filter(i => this._hookInstance.getDOMElement(i) != null)
               .forEach((instance) => {
                 func.apply(instance);
               });
@@ -62,17 +63,22 @@ const ReactHook = (function createReactHook() {
 
     async _init(rootSelector) {
       this._rootElement = await _.waitFor(() => _.get(rootSelector));
-      this._reactKey = await _.waitFor(() => Object.keys(this._rootElement).find(key => key.startsWith('__reactInternalInstance$')));
-      this._reactInstance = this._rootElement[this._reactKey];
+      const reactRootContainer = await _.waitFor(() => this._rootElement._reactRootContainer);
+      this._reactInstance = reactRootContainer.current.child;
     }
 
     _getReactInstance(object) {
       if (object != null) {
-        if (_.has(object, '_reactInternalInstance')) {
-          return object._reactInternalInstance;
+        if (_.has(object, '_reactInternalFiber')) {
+          return object._reactInternalFiber;
         }
-        if (_.has(object, this._reactKey)) {
-          return object[this._reactKey];
+        if (object instanceof Node) {
+          if (this._reactKey == null) {
+            this._reactKey = Object.keys(object).find(key => key.startsWith('__reactInternalInstance$'));
+          }
+          if (this._reactKey != null && _.has(object, this._reactKey)) {
+            return object[this._reactKey];
+          }
         }
       }
       return object;
@@ -82,10 +88,10 @@ const ReactHook = (function createReactHook() {
       object = this._getReactInstance(object); // eslint-disable-line no-param-reassign
 
       while (object) {
-        if (object._hostNode) {
-          return object._hostNode;
+        if (object.stateNode instanceof Node) {
+          return object.stateNode;
         }
-        object = object._renderedComponent; // eslint-disable-line no-param-reassign
+        object = object.child; // eslint-disable-line no-param-reassign
       }
 
       return null;
@@ -106,11 +112,7 @@ const ReactHook = (function createReactHook() {
 
       state.depth++;
 
-      const {
-        _instance: instance,
-        _renderedComponent: component,
-        _renderedChildren: children,
-      } = parent;
+      const instance = parent.stateNode;
 
       if (instance) {
         if (state.matchedComponent == null) {
@@ -123,14 +125,12 @@ const ReactHook = (function createReactHook() {
         }
       }
 
-      if (component) {
-        this._searchForComponent({ predicate, parent: component }, state);
-      }
-
-      if (children) {
-        Object.values(children).forEach((child) => {
+      if (parent.child) {
+        let child = parent.child;
+        while (child) {
           this._searchForComponent({ predicate, parent: child }, state);
-        });
+          child = child.sibling;
+        }
       }
 
       return {
@@ -158,7 +158,7 @@ const ReactHook = (function createReactHook() {
           const { instances, matchedComponent } = this._searchForComponent({ predicate });
           if (matchedComponent != null) {
             this._mutationObserverPredicates.splice(i, 1);
-            resolve(new WrappedComponent(name, matchedComponent, instances));
+            resolve(new WrappedComponent(name, matchedComponent, instances, this));
           }
         } catch (error) {
           reject(error);
@@ -196,7 +196,7 @@ const ReactHook = (function createReactHook() {
       return new Promise((resolve, reject) => {
         const { matchedComponent, instances } = this._searchForComponent({ predicate });
         if (matchedComponent != null) {
-          resolve(new WrappedComponent(name, matchedComponent, instances));
+          resolve(new WrappedComponent(name, matchedComponent, instances, this));
         } else {
           this._addToObserver({ name, predicate, resolve, reject });
         }
