@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.2.2
+// @version     3.2.3
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -13,9 +13,9 @@
 // @exclude     *.html
 // @exclude     *.html?*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.2/moment.min.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/fe1ef221ebb4f5ceb8554fe165bac96503ef6245/dist/utils/utils.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/fe1ef221ebb4f5ceb8554fe165bac96503ef6245/dist/utils/videoscroller.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/fe1ef221ebb4f5ceb8554fe165bac96503ef6245/dist/utils/reacthook.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/df539b3769c9b712f7898c0d4e5cf9d567125786/dist/utils/utils.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/df539b3769c9b712f7898c0d4e5cf9d567125786/dist/utils/videoscroller.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/df539b3769c9b712f7898c0d4e5cf9d567125786/dist/utils/reacthook.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
