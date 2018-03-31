@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://lepko.net/
-// @version     3.2.4
+// @version     3.2.5
 // @run-at      document-start
 // @match       *://*.youtube.com/*
 // @match       *://youtube.googleapis.com/embed/*
@@ -676,7 +676,7 @@
           return 64;
         },
         getSpeedContainerElement(player) {
-          return _.get('.sidedock', player);
+          return _.get('.vp-sidedock', player);
         },
         addSpeedTextElement(container) {
           const box = _.create('.box');
