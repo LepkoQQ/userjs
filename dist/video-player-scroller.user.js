@@ -39,7 +39,7 @@
       .ext_progress_bar {
         opacity: 0;
       }
-      [data-video] .hover-display.pl-hover-transition-out + .ext_progress_bar {
+      .hover-display.pl-hover-transition-out + .ext_progress_bar {
         opacity: 1;
       }
       body .pl-playback-stats {
