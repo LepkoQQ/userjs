@@ -9,6 +9,8 @@
   "rules": {
     "strict": ["error", "function"],
     "no-plusplus": "off",
-    "no-param-reassign": ["error", { "props": false }]
+    "no-param-reassign": ["error", { "props": false }],
+    "prefer-destructuring": ["error", {"object": true, "array": false}],
+    "no-debugger": "off"
   }
 }
