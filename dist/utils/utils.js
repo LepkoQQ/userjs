@@ -115,7 +115,9 @@ const _ = (function utils() {
       return parent.insertBefore(_.create(selector), before);
     },
     addCSS(css) {
-      const style = _.get('style#ext_css') || document.head.parentNode.insertBefore(_.create('style#ext_css'), document.head.nextSibling);
+      const style =
+        _.get('style#ext_css') ||
+        document.head.parentNode.insertBefore(_.create('style#ext_css'), document.head.nextSibling);
       style.insertAdjacentHTML('beforeend', css);
     },
     // UTILS
@@ -124,33 +126,110 @@ const _ = (function utils() {
       for (let i = 0; i < string.length; i += 1) {
         hash = string.charCodeAt(i) + ((hash << 5) - hash); // eslint-disable-line no-bitwise
       }
-      const color = Math.floor(Math.abs(((Math.sin(hash) * 10000) % 1) * 0xFFFFFF)).toString(16);
+      const color = Math.floor(Math.abs(((Math.sin(hash) * 10000) % 1) * 0xffffff)).toString(16);
       return `#${color.padStart(6, '0')}`;
     },
     replaceAll(str, find, replace) {
       return str.split(find).join(replace);
     },
-    waitFor(predicate, limit = 20, timeout = 500, count = 0) {
-      function retry(resolve, reject, counter) {
-        const result = predicate();
-        if (result) {
-          resolve(result);
-        } else if (limit > 0 && counter >= limit) {
-          console.error('-- _.waitFor TIMEOUT REJECTED --', 'predicate:', predicate.toString()); // eslint-disable-line no-console
-          reject(new Error('timeout'));
-        } else {
-          setTimeout(retry, timeout, resolve, reject, counter + 1);
+    waitForSelector(selector, options = {}) {
+      const el = options.parent ? _.get(selector, options.parent) : _.get(selector);
+      if (el) {
+        return Promise.resolve(el);
+      }
+      const timeout = typeof options.timeout === 'number' ? options.timeout : 30000;
+      let resolve;
+      let reject;
+      const promise = new Promise((resolve_, reject_) => {
+        resolve = resolve_;
+        reject = reject_;
+      });
+      let done = false;
+      let observer;
+      const timeoutTimer = setTimeout(() => {
+        done = true;
+        observer.disconnect();
+        reject(new Error(`waitForFunction failed: timeout ${timeout}ms exceeded`));
+      }, timeout);
+      observer = new MutationObserver(() => {
+        if (!done) {
+          const elem = options.parent ? _.get(selector, options.parent) : _.get(selector);
+          if (elem) {
+            done = true;
+            clearTimeout(timeoutTimer);
+            observer.disconnect();
+            resolve(elem);
+          }
+        }
+      });
+      observer.observe(options.parent || document, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+      });
+      return promise;
+    },
+    waitForFunction(func, options = {}, ...args) {
+      const timeout = typeof options.timeout === 'number' ? options.timeout : 30000;
+      let resolve;
+      let reject;
+      const promise = new Promise((resolve_, reject_) => {
+        resolve = resolve_;
+        reject = reject_;
+      });
+      let done = false;
+      const timeoutTimer = setTimeout(() => {
+        done = true;
+        reject(new Error(`waitForFunction failed: timeout ${timeout}ms exceeded`));
+      }, timeout);
+      async function retry() {
+        if (!done) {
+          try {
+            const success = await func(...args);
+            if (success) {
+              done = true;
+              clearTimeout(timeoutTimer);
+              resolve(success);
+            }
+          } catch (__) {
+            // noop
+          }
+          if (!done) {
+            window.requestAnimationFrame(retry);
+          }
         }
       }
-      return new Promise((resolve, reject) => {
-        retry(resolve, reject, count);
-      });
+      retry();
+      return promise;
+    },
+    waitFor(target, options = {}, ...args) {
+      if (typeof target === 'string') {
+        return _.waitForSelector(target, options);
+      }
+      if (typeof target === 'number') {
+        return new Promise(resolve => setTimeout(resolve, target));
+      }
+      if (typeof target === 'function') {
+        return _.waitForFunction(target, options, ...args);
+      }
+      return Promise.reject(new Error(`Unsupported target type: ${typeof target}`));
     },
     isInputActive() {
-      return document.activeElement && (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable);
+      return (
+        document.activeElement &&
+        (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) ||
+          document.activeElement.isContentEditable)
+      );
     },
     has(object, key) {
       return Object.prototype.hasOwnProperty.call(object, key);
+    },
+    hasAll(object, keys) {
+      if (object != null) {
+        const objKeys = Object.keys(object);
+        return keys.every(k => objKeys.includes(k));
+      }
+      return false;
     },
     getKey(object, path, defaultValue) {
       const pathArray = typeof path === 'string' ? [path] : path;
@@ -184,7 +263,13 @@ const _ = (function utils() {
     },
     toURI(url, params) {
       const str = url + (url.includes('?') ? '&' : '?');
-      return str + Object.keys(params).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key]).replace(/%20/g, '+')}`).join('&');
+      return (
+        str +
+        Object.keys(params)
+          .map(key =>
+            `${encodeURIComponent(key)}=${encodeURIComponent(params[key]).replace(/%20/g, '+')}`)
+          .join('&')
+      );
     },
     escapeHTML(string) {
       const entityMap = {
@@ -205,6 +290,12 @@ const _ = (function utils() {
       resp = resp.replace(/<img(?:.|\n)*?>/gi, '');
       return resp;
     },
+    formatDuration(seconds) {
+      const sec = Math.floor(seconds % 60).toString().padStart(2, '0');
+      const min = Math.floor(Math.floor(seconds / 60) % 60).toString().padStart(2, '0');
+      const hrs = Math.floor(Math.floor(seconds / 60) / 60).toString().padStart(2, '0');
+      return `${hrs}:${min}:${sec}`;
+    },
     // STORAGE
     putJSON(key, data) {
       GM_setValue(key, JSON.stringify(data)); // eslint-disable-line new-cap
@@ -222,7 +313,9 @@ const _ = (function utils() {
     // LOGGER
     logger(prefixes) {
       const prefixArray = typeof prefixes === 'string' ? [prefixes] : prefixes;
-      const prefixString = prefixArray ? prefixArray.map(prefix => `%c ${prefix} %c`).join(' ') : null;
+      const prefixString = prefixArray
+        ? prefixArray.map(prefix => `%c ${prefix} %c`).join(' ')
+        : null;
       const prefixColors = [];
       if (prefixString) {
         prefixArray.forEach((prefix) => {
@@ -285,21 +378,33 @@ const _ = (function utils() {
         },
       };
     },
-    cachedAjax(storeKey, url, {
-      attrs = {},
-      parse = r => r,
-      isStale = () => false,
-      storeFormat = r => r,
-      cacheLength = 3600000,
-      logger,
-    } = {}) {
-      const ajaxLogger = logger ? logger.push(`cached [${storeKey}]`) : _.logger(`cached [${storeKey}]`);
+    cachedAjax(
+      storeKey,
+      url,
+      {
+        attrs = {},
+        parse = r => r,
+        isStale = () => false,
+        storeFormat = r => r,
+        cacheLength = 3600000,
+        logger,
+      } = {},
+    ) {
+      const ajaxLogger = logger
+        ? logger.push(`cached [${storeKey}]`)
+        : _.logger(`cached [${storeKey}]`);
       return new Promise((resolve, reject) => {
         ajaxLogger.debug('started');
         const stored = _.getJSON(storeKey);
-        if (!stored || !stored.data || !stored.cacheTime
-          || ((Date.now() - stored.cacheTime) > cacheLength) || isStale(stored)) {
-          _.ajax(url, { attrs, logger: ajaxLogger }).send()
+        if (
+          !stored ||
+          !stored.data ||
+          !stored.cacheTime ||
+          Date.now() - stored.cacheTime > cacheLength ||
+          isStale(stored)
+        ) {
+          _.ajax(url, { attrs, logger: ajaxLogger })
+            .send()
             .then((response) => {
               const parsed = parse(response);
               if (parsed) {
