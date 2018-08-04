@@ -77,9 +77,6 @@ const ReactHook = (function createReactHook() {
 
     _getReactInstance(object) {
       if (object != null) {
-        if (_.has(object, '_reactInternalFiber')) {
-          return object._reactInternalFiber;
-        }
         if (object instanceof Node) {
           if (this._reactKey == null) {
             this._reactKey = Object.keys(object).find(key =>
@@ -112,11 +109,15 @@ const ReactHook = (function createReactHook() {
       { predicate, parent = this._reactInstance } = {},
       state = { depth: 0, matchedComponent: null, instances: [] },
     ) {
+      if (parent === this._reactInstance) {
+        // eslint-disable-next-line no-console
+        console.log('scroller - _searchForComponent called with _reactInstance or undefined');
+      }
       // eslint-disable-next-line no-param-reassign
       parent = this._getReactInstance(parent);
 
       if (parent == null || state.depth > 20000) {
-        // console.log('bailed search for component at depth', state.depth);
+        // console.log('scoller - bailed search for component at depth', state.depth);
         return {
           matchedComponent: state.matchedComponent,
           instances: state.instances,
@@ -127,7 +128,7 @@ const ReactHook = (function createReactHook() {
 
       const instance = parent.stateNode;
 
-      if (instance) {
+      if (instance && !(instance instanceof Node)) {
         if (state.matchedComponent == null) {
           if (predicate.call(null, instance)) {
             // console.log('found component at depth', state.depth);
@@ -175,7 +176,7 @@ const ReactHook = (function createReactHook() {
         try {
           const { instances, matchedComponent } = this._searchForComponent({
             predicate,
-            parent: node,
+            // parent: node,
           });
           if (matchedComponent != null) {
             this._mutationObserverPredicates.splice(i, 1);

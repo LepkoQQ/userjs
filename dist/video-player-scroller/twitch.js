@@ -240,17 +240,15 @@
           }
         },
       });
+
+      // eslint-disable-next-line no-underscore-dangle
+      wrappedComponent._instances.forEach((instance) => {
+        instance.forceUpdate();
+      });
     });
 
     hook
-      .findComponent(
-        'videoPreviewCard',
-        c =>
-          c.onMouseEnterHandler &&
-          c.onMouseLeaveHandler &&
-          c.onPreviewImageLoad &&
-          c.onPreviewImageLoadError,
-      )
+      .findComponent('videoPreviewCard', c => c.getVideoPreviousWatchPercentage)
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
@@ -301,9 +299,8 @@
           body .pl-stats-list .pl-stat div {
             padding-left: 0;
           }
-          body .video-preview-card__image-wrapper--watched {
-            opacity: 0.2;
-            filter: contrast(30%);
+          body .preview-card-overlay .tw-progress-bar--sm {
+            height: 4rem;
           }
           .__ext__vod_date {
             font-size: 1.2rem;
