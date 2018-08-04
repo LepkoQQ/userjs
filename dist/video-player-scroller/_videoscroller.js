@@ -250,7 +250,7 @@ const VideoScroller = (function createVideoScroller() {
           const duration = this.options.getVideoDuration(this.player);
           const currentTime = this.options.getCurrentTime(this.player);
           if (duration > 0) {
-            const percent = (currentTime + 1) / duration;
+            const percent = currentTime / duration;
             this.progressFillElement.style.transform = `scaleX(${percent})`;
           }
 
