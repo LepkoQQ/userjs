@@ -9,7 +9,9 @@ const ReactHook = (function createReactHook() {
   const ensureNotWrapped = (Component, wrapped) => {
     if (wrappedComponents.has(Component)) {
       const other = wrappedComponents.get(Component);
-      throw new Error(`WrappedComponent(${wrapped.name}) tried to wrap the same Component as WrappedComponent(${other.name})`);
+      throw new Error(`WrappedComponent(${wrapped.name}) tried to wrap the same Component as WrappedComponent(${
+        other.name
+      })`);
     }
     wrappedComponents.set(Component, wrapped);
     return Component;
@@ -66,7 +68,10 @@ const ReactHook = (function createReactHook() {
 
     async _init(rootSelector) {
       this._rootElement = await _.waitFor(() => _.get(rootSelector));
-      const reactRootContainer = await _.waitFor(() => this._rootElement._reactRootContainer);
+      let reactRootContainer = await _.waitFor(() => this._rootElement._reactRootContainer);
+      if (reactRootContainer._internalRoot && reactRootContainer._internalRoot.current) {
+        reactRootContainer = reactRootContainer._internalRoot;
+      }
       this._reactInstance = reactRootContainer.current.child;
     }
 
