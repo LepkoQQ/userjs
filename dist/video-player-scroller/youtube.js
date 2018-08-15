@@ -90,15 +90,6 @@
     },
   };
 
-  const dateFormatter = new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-
   function forceTheater() {
     const watch = _.get('ytd-watch');
     if (watch && !watch.hasAttribute('theater')) {
@@ -220,7 +211,7 @@
           .then((response) => {
             const jsonR = JSON.parse(response);
             const time = Date.parse(jsonR.items[0].snippet.publishedAt);
-            event.target.textContent = dateFormatter.format(time);
+            event.target.textContent = _.formatDateTime(time);
           })
           .catch((error) => {
             LOGGER.warn('Publish Date Failed', error);

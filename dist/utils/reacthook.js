@@ -109,10 +109,6 @@ const ReactHook = (function createReactHook() {
       { predicate, parent = this._reactInstance } = {},
       state = { depth: 0, matchedComponent: null, instances: [] },
     ) {
-      if (parent === this._reactInstance) {
-        // eslint-disable-next-line no-console
-        console.log('scroller - _searchForComponent called with _reactInstance or undefined');
-      }
       // eslint-disable-next-line no-param-reassign
       parent = this._getReactInstance(parent);
 

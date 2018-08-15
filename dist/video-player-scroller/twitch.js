@@ -4,15 +4,6 @@
 
   let LOGGER;
 
-  const dateFormatter = new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-
   function createScrollerOptions(playerApi) {
     return {
       logger: LOGGER,
@@ -151,7 +142,7 @@
               if (titleElem) {
                 const addedElem = _.getOrCreate('span.__ext__vod_date', titleElem);
                 const time = Date.parse(this.props.video.publishedAt);
-                addedElem.textContent = dateFormatter.format(time);
+                addedElem.textContent = _.formatDateTime(time);
               }
             }
           },

@@ -2,6 +2,15 @@
 const _ = (function utils() {
   'use strict';
 
+  const dateTimeLong = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
   return {
     // DOM
     get(selector, parent) {
@@ -296,6 +305,15 @@ const _ = (function utils() {
       const hrs = Math.floor(Math.floor(seconds / 60) / 60).toString().padStart(2, '0');
       return `${hrs}:${min}:${sec}`;
     },
+    formatDateTime(dateTime, format = 'long') {
+      const date = typeof dateTime === 'number' ? new Date(dateTime) : dateTime;
+      switch (format) {
+        case 'long':
+        default: {
+          return dateTimeLong.format(date);
+        }
+      }
+    },
     // STORAGE
     putJSON(key, data) {
       GM_setValue(key, JSON.stringify(data)); // eslint-disable-line new-cap
@@ -341,6 +359,7 @@ const _ = (function utils() {
       };
       return obj;
     },
+    // AJAX
     ajax(url, { attrs = {}, logger } = {}) {
       const ajaxLogger = logger ? logger.push('ajax') : _.logger('ajax');
       return {
