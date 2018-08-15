@@ -77,6 +77,9 @@ const ReactHook = (function createReactHook() {
 
     _getReactInstance(object) {
       if (object != null) {
+        if (object._reactInternalFiber) {
+          return object._reactInternalFiber;
+        }
         if (object instanceof Node) {
           if (this._reactKey == null) {
             this._reactKey = Object.keys(object).find(key =>
@@ -172,7 +175,7 @@ const ReactHook = (function createReactHook() {
         try {
           const { instances, matchedComponent } = this._searchForComponent({
             predicate,
-            // parent: node,
+            parent: node,
           });
           if (matchedComponent != null) {
             this._mutationObserverPredicates.splice(i, 1);
@@ -193,7 +196,9 @@ const ReactHook = (function createReactHook() {
         this._mutationObserver = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
             if (mutation.addedNodes && mutation.addedNodes.length) {
-              this._onMutation(mutation.target);
+              mutation.addedNodes.forEach((node) => {
+                this._onMutation(node);
+              });
             }
           });
         });

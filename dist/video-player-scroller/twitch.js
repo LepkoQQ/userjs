@@ -92,13 +92,11 @@
       addTimeUpdateEventListener(player, func) {
         if (playerApi) {
           playerApi.addEventListener('timeupdate', func);
-          playerApi.addEventListener('progress', func);
         }
       },
       removeTimeUpdateEventListener(player, func) {
         if (playerApi) {
           playerApi.removeEventListener('timeupdate', func);
-          playerApi.removeEventListener('progress', func);
         }
       },
     };
@@ -150,7 +148,10 @@
       });
 
     hook
-      .findComponent('channel-info-bar', c => c.getGame && c.getTitle && c.renderCommunities)
+      .findComponent(
+        'channel-info-bar',
+        c => c.renderChannelMetadata && c.renderChannelViewersCount,
+      )
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
@@ -158,14 +159,13 @@
         wrappedComponent.wrap({
           componentDidUpdate() {
             // add uptime under live stream
-            if (this.props.channelLogin && !this.props.channelIsHosting) {
+            if (this.props.channelLogin && !this.props.hosting) {
               const elem = hook.getDOMElement(this);
-              const actionContainer = _.get('.channel-info-bar__action-container > .tw-flex', elem);
+              const actionContainer = _.get('.side-nav-channel-info__info-wrapper', elem);
               if (actionContainer) {
                 const addedElem = _.getOrCreate(
-                  'span.__ext__uptime.tw-mg-r-1',
+                  'span.__ext__uptime.tw-align-center.tw-block.tw-mg-1',
                   actionContainer,
-                  actionContainer.firstChild,
                 );
                 if (uptimes.has(this) && uptimes.get(this).startedAt) {
                   const uptime = (Date.now() - uptimes.get(this).startedAt) / 1000;
