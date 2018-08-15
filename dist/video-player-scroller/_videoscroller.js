@@ -25,11 +25,11 @@ const VideoScroller = (function createVideoScroller() {
       z-index: 2000;
       width: 100%;
       height: 3px;
-      background: rgba(255,255,255,0.4);
       opacity: 1;
       transition: opacity .1s cubic-bezier(0.4,0,1,1);
     }
-    .ext_progress_bar_fill {
+    .ext_progress_bar_fill,
+    .ext_progress_bar_fill_buffer {
       position: absolute;
       bottom: 0;
       left: 0;
@@ -37,6 +37,9 @@ const VideoScroller = (function createVideoScroller() {
       height: 3px;
       transform: scaleX(0);
       transform-origin: left;
+    }
+    .ext_progress_bar_fill_buffer {
+      background: rgba(255,255,255,0.4);
     }
   `);
 
@@ -96,6 +99,17 @@ const VideoScroller = (function createVideoScroller() {
       const video = _.get('video', player);
       return video.currentTime;
     },
+    getCurrentBuffer(player) {
+      const video = _.get('video', player);
+      for (let i = 0; i < video.buffered.length; i++) {
+        const start = video.buffered.start(i);
+        const end = video.buffered.end(i);
+        if (video.currentTime >= start && video.currentTime <= end) {
+          return end;
+        }
+      }
+      return 0;
+    },
     isPaused(player) {
       const video = _.get('video', player);
       return video.paused;
@@ -124,10 +138,12 @@ const VideoScroller = (function createVideoScroller() {
     addTimeUpdateEventListener(player, func) {
       const video = _.get('video', player);
       video.addEventListener('timeupdate', func);
+      video.addEventListener('progress', func);
     },
     removeTimeUpdateEventListener(player, func) {
       const video = _.get('video', player);
       video.removeEventListener('timeupdate', func);
+      video.removeEventListener('progress', func);
     },
   };
 
@@ -159,6 +175,7 @@ const VideoScroller = (function createVideoScroller() {
       this.progressContainerElement = this.options.getProgressContainerElement(this.player);
       if (this.progressContainerElement) {
         const progress = this.progressContainerElement.appendChild(_.create('.ext_progress_bar'));
+        this.progressFillBufferElement = progress.appendChild(_.create('.ext_progress_bar_fill_buffer'));
         this.progressFillElement = progress.appendChild(_.create('.ext_progress_bar_fill', { style: `background:${this.options.color}` }));
         this.updateProgress = this.updateProgress.bind(this);
         this.options.addTimeUpdateEventListener(this.player, this.updateProgress);
@@ -190,6 +207,7 @@ const VideoScroller = (function createVideoScroller() {
 
       this.progressContainerElement = null;
       this.progressFillElement = null;
+      this.progressFillBufferElement = null;
 
       document.removeEventListener('keydown', this.onKeyDown, true);
       document.removeEventListener('keyup', this.onKeyUp, true);
@@ -246,12 +264,19 @@ const VideoScroller = (function createVideoScroller() {
 
     updateProgress() {
       if (!this.destroyed && this.player) {
-        if (this.progressContainerElement && this.progressFillElement) {
+        if (
+          this.progressContainerElement &&
+          this.progressFillElement &&
+          this.progressFillBufferElement
+        ) {
           const duration = this.options.getVideoDuration(this.player);
           const currentTime = this.options.getCurrentTime(this.player);
+          const currentBuffer = this.options.getCurrentBuffer(this.player);
           if (duration > 0) {
             const percent = currentTime / duration;
             this.progressFillElement.style.transform = `scaleX(${percent})`;
+            const percentBuffered = currentBuffer / duration;
+            this.progressFillBufferElement.style.transform = `scaleX(${percentBuffered})`;
           }
 
           if (this.speedTextElement) {

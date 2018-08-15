@@ -101,11 +101,13 @@
       addTimeUpdateEventListener(player, func) {
         if (playerApi) {
           playerApi.addEventListener('timeupdate', func);
+          playerApi.addEventListener('progress', func);
         }
       },
       removeTimeUpdateEventListener(player, func) {
         if (playerApi) {
           playerApi.removeEventListener('timeupdate', func);
+          playerApi.removeEventListener('progress', func);
         }
       },
     };
