@@ -197,7 +197,7 @@ const ReactHook = (function createReactHook() {
           mutations.forEach((mutation) => {
             if (mutation.addedNodes && mutation.addedNodes.length) {
               mutation.addedNodes.forEach((node) => {
-                this._onMutation(node);
+                this._onMutation(node.parentElement);
               });
             }
           });

@@ -126,8 +126,10 @@
     LOGGER.log('created react hook', hook);
 
     hook
-      .findComponent('videoInfoBar', c =>
-        _.hasAll(c.props, ['video', 'collectionID', 'currentUser', 'lastVideoOffset']))
+      .findComponent(
+        'videoInfoBar',
+        c => c.props && c.props.video && Object.keys(c.props).length === 1,
+      )
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
@@ -136,7 +138,10 @@
             // add video publish datetime on vods
             if (this.props.video && this.props.video.publishedAt) {
               const elem = hook.getDOMElement(this);
-              const titleElem = _.get('.tw-card .tw-card-body p[title]', elem);
+              const titleElem = _.get(
+                '.tw-card .tw-card-body p[data-test-selector="date-views"]',
+                elem,
+              );
               if (titleElem) {
                 const addedElem = _.getOrCreate('span.__ext__vod_date', titleElem);
                 const time = Date.parse(this.props.video.publishedAt);
