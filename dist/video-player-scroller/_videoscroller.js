@@ -232,6 +232,7 @@ const VideoScroller = (function createVideoScroller() {
           }
           break;
         }
+        case 'KeyV':
         case 'KeyJ':
         case 'KeyL':
         case 'ArrowLeft':
@@ -354,6 +355,10 @@ const VideoScroller = (function createVideoScroller() {
     }
 
     static getStepSizeFromKeyEvent(event) {
+      if (event.code === 'KeyV') {
+        return 600;
+      }
+
       if (!['KeyJ', 'KeyL', 'ArrowLeft', 'ArrowRight'].includes(event.code)) {
         return 0;
       }

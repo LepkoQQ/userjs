@@ -209,7 +209,7 @@
       wrappedComponent.wrap({
         componentDidUpdate() {
           if (this.playerRef && this.player && !scrollers.has(this)) {
-            const vs = new VideoScroller(this.playerRef, createScrollerOptions(this.player));
+            const vs = new VideoScroller(this.playerRef, createScrollerOptions(this.player.player));
             scrollers.set(this, vs);
             // prevent auto playing next video
             observers.set(
