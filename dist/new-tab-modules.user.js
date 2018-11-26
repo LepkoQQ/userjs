@@ -63,9 +63,12 @@
       }
     `);
 
-    document.head.parentNode.insertBefore(_.create('#ext_404container', {
-      innerHTML: '<iframe class="fadein" src="//www.google.com/_/open/404"></iframe>',
-    }), document.head.nextSibling);
+    document.head.parentNode.insertBefore(
+      _.create('#ext_404container', {
+        innerHTML: '<iframe class="fadein" src="//www.google.com/_/open/404"></iframe>',
+      }),
+      document.head.nextSibling
+    );
   } else {
     _.addCSS(`
       html {
@@ -152,9 +155,12 @@
       }
     `);
 
-    const CONTAINER = document.head.parentNode.insertBefore(_.create('div#ext_container', {
-      innerHTML: '<div id="ext_popbox_container"></div>',
-    }), document.head.nextSibling);
+    const CONTAINER = document.head.parentNode.insertBefore(
+      _.create('div#ext_container', {
+        innerHTML: '<div id="ext_popbox_container"></div>',
+      }),
+      document.head.nextSibling
+    );
     const POPBOX_CONTAINER = _.get('#ext_popbox_container', CONTAINER);
 
     // CLOCK
@@ -198,12 +204,29 @@
       }
     `);
 
-    const CLOCK = CONTAINER.insertBefore(_.create('#ext_clock', {
-      innerHTML: '<div id="time"><span id="h"></span><span id="m"></span><div id="sap">&nbsp;<span id="s"></span><span id="ap"></span></div></div><div id="date"></div>',
-    }), POPBOX_CONTAINER);
+    const CLOCK = CONTAINER.insertBefore(
+      _.create('#ext_clock', {
+        innerHTML:
+          '<div id="time"><span id="h"></span><span id="m"></span><div id="sap">&nbsp;<span id="s"></span><span id="ap"></span></div></div><div id="date"></div>',
+      }),
+      POPBOX_CONTAINER
+    );
 
     const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const MONTHS = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
 
     const elHours = _.get('#h', CLOCK);
     const elMinutes = _.get('#m', CLOCK);
@@ -216,9 +239,18 @@
       const hour = date.getHours();
       elAmPm.textContent = hour < 12 ? 'am' : 'pm';
       elHours.textContent = hour.toString().padStart(2, '0');
-      elMinutes.textContent = date.getMinutes().toString().padStart(2, '0');
-      elSeconds.textContent = date.getSeconds().toString().padStart(2, '0');
-      elDate.textContent = `${DAYS[date.getDay()]}, ${date.getDate().toString().padStart(2, '0')} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+      elMinutes.textContent = date
+        .getMinutes()
+        .toString()
+        .padStart(2, '0');
+      elSeconds.textContent = date
+        .getSeconds()
+        .toString()
+        .padStart(2, '0');
+      elDate.textContent = `${DAYS[date.getDay()]}, ${date
+        .getDate()
+        .toString()
+        .padStart(2, '0')} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
       setTimeout(setTime, 1000);
     }());
 
@@ -287,7 +319,8 @@
         getName(entry) {
           return entry.title;
         },
-        getTimestamp(entry) { // No timezone needed here because we have ISO time string with UTC
+        getTimestamp(entry) {
+          // No timezone needed here because we have ISO time string with UTC
           const timeStart = entry.start_time;
           return moment(timeStart).valueOf();
         },
@@ -316,7 +349,9 @@
       if (obj.entries.length > 0) {
         obj.entries.forEach((entry) => {
           const m = moment(entry.timestamp).tz('Europe/Ljubljana');
-          html += `<tr><td>${entry.title}</td><td>${m.format('dddd, MMMM D @ HH:mm')}</td><td>${m.fromNow()}</td></tr>`;
+          html += `<tr><td>${entry.title}</td><td>${m.format(
+            'dddd, MMMM D @ HH:mm'
+          )}</td><td>${m.fromNow()}</td></tr>`;
         });
       } else {
         html += '<tr><td>No Events :(</td></tr>';
@@ -325,23 +360,30 @@
       SCHEDULES.insertAdjacentHTML('beforeend', html);
     };
 
-    Promise.all(Object.keys(SCHEDULE_SITES).map((key) => {
-      const opt = SCHEDULE_SITES[key];
-      return _.cachedAjax(`schedule-${key}`, opt.apiUrl, {
-        attrs: opt.ajaxAttrs,
-        parse(response) {
-          const resp = opt.parseResponse(response);
-          return getEntries(opt, resp);
+    Promise.all(
+      Object.keys(SCHEDULE_SITES).map((key) => {
+        const opt = SCHEDULE_SITES[key];
+        return _.cachedAjax(`schedule-${key}`, opt.apiUrl, {
+          attrs: opt.ajaxAttrs,
+          parse(response) {
+            const resp = opt.parseResponse(response);
+            return getEntries(opt, resp);
+          },
+          logger: LOGGER,
+        });
+      })
+    )
+      .then(
+        (results) => {
+          results.forEach(addScheduleTable);
         },
-        logger: LOGGER,
+        (error) => {
+          LOGGER.warn('cannot update schedules', error);
+        }
+      )
+      .then(() => {
+        SCHEDULES.style.opacity = 1;
       });
-    })).then((results) => {
-      results.forEach(addScheduleTable);
-    }, (error) => {
-      LOGGER.warn('cannot update schedules', error);
-    }).then(() => {
-      SCHEDULES.style.opacity = 1;
-    });
 
     // TWITCH
     if (window.location.hostname === 'lepko.net') {
@@ -380,15 +422,23 @@
         return;
       }
 
-      const STREAMS_URL = `https://api.twitch.tv/kraken/streams/followed?oauth_token=${AUTH_TOKEN.token}&client_id=${CLIENT_ID}`;
+      const STREAMS_URL = `https://api.twitch.tv/kraken/streams/followed?oauth_token=${
+        AUTH_TOKEN.token
+      }&client_id=${CLIENT_ID}`;
 
       const addTwitchTable = (obj) => {
         let html = `<div class="title"><a href="${obj.url}" target="_top">${obj.title}</a></div>`;
         html += '<table>';
         if (obj.entries.length > 0) {
           obj.entries.forEach((entry) => {
-            html += `<tr><td rowspan=2><img src="${entry.preview.small}"></td><td colspan=3><a href="${entry.channel.url}" target="_top">${entry.channel.status}</a></td></tr>`;
-            html += `<tr><td>${entry.channel.display_name}</td><td>${entry.channel.game}</td><td>${entry.viewers} viewers</td></tr>`;
+            html += `<tr><td rowspan=2><img src="${
+              entry.preview.small
+            }"></td><td colspan=3><a href="${entry.channel.url}" target="_top">${
+              entry.channel.status
+            }</a></td></tr>`;
+            html += `<tr><td>${entry.channel.display_name}</td><td>${entry.channel.game}</td><td>${
+              entry.viewers
+            } viewers</td></tr>`;
           });
         } else {
           html += '<tr><td>No Live Channels :(</td></tr>';
@@ -408,15 +458,20 @@
           obj.entries = entries.filter(entry => entry.stream_type === 'live');
           return obj;
         },
-        cacheLength: (1000 * 60 * 5),
+        cacheLength: 1000 * 60 * 5,
         logger: LOGGER,
-      }).then((result) => {
-        addTwitchTable(result);
-      }, (error) => {
-        LOGGER.warn('cannot get twitch live channels', error);
-      }).then(() => {
-        TWITCH.style.opacity = 1;
-      });
+      })
+        .then(
+          (result) => {
+            addTwitchTable(result);
+          },
+          (error) => {
+            LOGGER.warn('cannot get twitch live channels', error);
+          }
+        )
+        .then(() => {
+          TWITCH.style.opacity = 1;
+        });
     }
 
     // CHROME STATUS
@@ -429,64 +484,67 @@
 
     const CHROME = POPBOX_CONTAINER.appendChild(_.create('#ext_chrome_status.ext_popbox'));
 
-    const getVersions = () => (
-      _.cachedAjax('chrome-versions', 'https://www.chromestatus.com/omaha_data', {
-        parse(response) {
-          const jsonR = JSON.parse(response);
+    const getVersions = () => _.cachedAjax('chrome-versions', 'https://www.chromestatus.com/omaha_data', {
+      parse(response) {
+        const jsonR = JSON.parse(response);
 
-          const win64data = jsonR.find(platform => platform.os === 'win64');
-          if (!win64data) {
-            throw new Error("Could not find 'win64' version data!");
+        const win64data = jsonR.find(platform => platform.os === 'win64');
+        if (!win64data) {
+          throw new Error("Could not find 'win64' version data!");
+        }
+
+        const versions = {};
+        Object.keys(win64data.versions).forEach((key) => {
+          const version = win64data.versions[key];
+          if (!version.channel.includes('_asan')) {
+            versions[version.channel] = parseInt(version.current_version.split('.')[0], 10);
           }
+        });
 
-          const versions = {};
-          Object.keys(win64data.versions).forEach((key) => {
-            const version = win64data.versions[key];
-            if (!version.channel.includes('_asan')) {
-              versions[version.channel] = parseInt(version.current_version.split('.')[0], 10);
-            }
-          });
+        return versions;
+      },
+      logger: LOGGER,
+    });
 
-          return versions;
-        },
-        logger: LOGGER,
-      })
-    );
-
-    const getFeatures = () => (
-      _.cachedAjax('chrome-features', 'https://www.chromestatus.com/features.json', {
-        parse(response) {
-          return JSON.parse(response);
-        },
-        logger: LOGGER,
-      })
-    );
+    const getFeatures = () => _.cachedAjax('chrome-features', 'https://www.chromestatus.com/features.json', {
+      parse(response) {
+        return JSON.parse(response);
+      },
+      logger: LOGGER,
+    });
 
     const addVersionsTable = (versions) => {
       const lastVersions = _.getJSON('chrome-last-versions', versions);
 
       const frag = document.createDocumentFragment();
-      frag.appendChild(_.create('.title', {
-        innerHTML: '<a href="https://www.chromestatus.com/" target="_top">Chrome Versions</a>',
-      }));
-      const row = frag.appendChild(_.create('table')).appendChild(_.create('tbody')).appendChild(_.create('tr.versions'));
+      frag.appendChild(
+        _.create('.title', {
+          innerHTML: '<a href="https://www.chromestatus.com/" target="_top">Chrome Versions</a>',
+        })
+      );
+      const row = frag
+        .appendChild(_.create('table'))
+        .appendChild(_.create('tbody'))
+        .appendChild(_.create('tr.versions'));
 
-      Object.keys(versions).reverse().forEach((key) => {
-        const obj = {
-          textContent: `${key.toUpperCase()}: ${versions[key]}`,
-        };
-        if (versions[key] !== lastVersions[key]) {
-          obj.events = {
-            click(e) {
-              lastVersions[key] = versions[key];
-              _.putJSON('chrome-last-versions', lastVersions);
-              e.target.style.cssText = '';
-            },
+      Object.keys(versions)
+        .reverse()
+        .forEach((key) => {
+          const obj = {
+            textContent: `${key.toUpperCase()}: ${versions[key]}`,
           };
-          obj.style = 'background-color: #4CAF50; cursor: pointer;';
-        }
-        row.appendChild(_.create('td', obj));
-      });
+          if (versions[key] !== lastVersions[key]) {
+            obj.events = {
+              click(e) {
+                lastVersions[key] = versions[key];
+                _.putJSON('chrome-last-versions', lastVersions);
+                e.target.style.cssText = '';
+              },
+            };
+            obj.style = 'background-color: #4CAF50; cursor: pointer;';
+          }
+          row.appendChild(_.create('td', obj));
+        });
 
       CHROME.appendChild(frag);
     };
@@ -508,20 +566,24 @@
       }
 
       const frag = document.createDocumentFragment();
-      frag.appendChild(_.create('.title', {
-        innerHTML: '<a href="https://www.chromestatus.com/" target="_top">Features</a>',
-      }));
+      frag.appendChild(
+        _.create('.title', {
+          innerHTML: '<a href="https://www.chromestatus.com/" target="_top">Features</a>',
+        })
+      );
       const table = frag.appendChild(_.create('table')).appendChild(_.create('tbody'));
 
-      const sortedKeys = Object.keys(comp).sort((a, b) => {
-        const aa = comp[a].current || comp[a].last;
-        const bb = comp[b].current || comp[b].last;
-        return (new Date(bb.updated)).getTime() - (new Date(aa.updated)).getTime();
-      }).sort((a, b) => {
-        const aa = comp[a].current || comp[a].last;
-        const bb = comp[b].current || comp[b].last;
-        return aa.shipped_milestone - bb.shipped_milestone;
-      });
+      const sortedKeys = Object.keys(comp)
+        .sort((a, b) => {
+          const aa = comp[a].current || comp[a].last;
+          const bb = comp[b].current || comp[b].last;
+          return new Date(bb.updated).getTime() - new Date(aa.updated).getTime();
+        })
+        .sort((a, b) => {
+          const aa = comp[a].current || comp[a].last;
+          const bb = comp[b].current || comp[b].last;
+          return aa.shipped_milestone - bb.shipped_milestone;
+        });
 
       sortedKeys.forEach((key) => {
         const entry = comp[key];
@@ -540,35 +602,43 @@
         }
         if (color || (entry.last && !entry.last.ext_hidden)) {
           const ent = entry.current || entry.last;
-          const row = table.appendChild(_.create('tr', {
-            innerHTML: `<td title="${ent.updated}" style="width: 30px; text-align: center;">${ent.shipped_milestone}</td>
+          const row = table.appendChild(
+            _.create('tr', {
+              innerHTML: `<td title="${ent.updated}" style="width: 30px; text-align: center;">${
+                ent.shipped_milestone
+              }</td>
                         <td title="${_.escapeHTML(ent.summary)}">
-                          <a href="https://www.chromestatus.com/feature/${ent.id}" target="_blank">${_.escapeHTML(ent.name)}</a>
+                          <a href="https://www.chromestatus.com/feature/${
+  ent.id
+  }" target="_blank">${_.escapeHTML(ent.name)}</a>
                         </td>`,
-          }));
+            })
+          );
           row.style.backgroundColor = color;
-          row.appendChild(_.create('td', {
-            innerHTML: '&times;',
-            style: 'width: 24px; text-align: center; cursor: pointer;',
-            events: {
-              click(e) {
-                const id = entry.current ? entry.current.id : entry.last.id;
-                const lastThisFeatIndex = lastFeatures.findIndex(feat => feat.id === id);
-                const thisFeat = features.find(feat => feat.id === id);
-                if (lastThisFeatIndex === -1 && thisFeat) {
-                  thisFeat.ext_hidden = true;
-                  lastFeatures.push(thisFeat);
-                } else if (!thisFeat && lastThisFeatIndex !== -1) {
-                  lastFeatures.splice(lastThisFeatIndex, 1);
-                } else if (thisFeat && lastThisFeatIndex !== -1) {
-                  thisFeat.ext_hidden = true;
-                  lastFeatures[lastThisFeatIndex] = thisFeat;
-                }
-                e.currentTarget.parentElement.remove();
-                _.putJSON('chrome-last-features', lastFeatures);
+          row.appendChild(
+            _.create('td', {
+              innerHTML: '&times;',
+              style: 'width: 24px; text-align: center; cursor: pointer;',
+              events: {
+                click(e) {
+                  const id = entry.current ? entry.current.id : entry.last.id;
+                  const lastThisFeatIndex = lastFeatures.findIndex(feat => feat.id === id);
+                  const thisFeat = features.find(feat => feat.id === id);
+                  if (lastThisFeatIndex === -1 && thisFeat) {
+                    thisFeat.ext_hidden = true;
+                    lastFeatures.push(thisFeat);
+                  } else if (!thisFeat && lastThisFeatIndex !== -1) {
+                    lastFeatures.splice(lastThisFeatIndex, 1);
+                  } else if (thisFeat && lastThisFeatIndex !== -1) {
+                    thisFeat.ext_hidden = true;
+                    lastFeatures[lastThisFeatIndex] = thisFeat;
+                  }
+                  e.currentTarget.parentElement.remove();
+                  _.putJSON('chrome-last-features', lastFeatures);
+                },
               },
-            },
-          }));
+            })
+          );
         }
       });
 
@@ -576,14 +646,17 @@
     };
 
     Promise.all([getVersions(), getFeatures()])
-      .then(([versions, features]) => {
-        addVersionsTable(versions);
-        const filterVersions = [versions.stable, (versions.stable + 1)];
-        const filteredFeatures = features.filter(e => filterVersions.includes(e.shipped_milestone));
-        addFeaturesTable(filteredFeatures);
-      }, (error) => {
-        LOGGER.warn('cannot get chrome versions/features', error);
-      })
+      .then(
+        ([versions, features]) => {
+          addVersionsTable(versions);
+          const filterVersions = [versions.stable, versions.stable + 1];
+          const filteredFeatures = features.filter(e => filterVersions.includes(e.shipped_milestone));
+          addFeaturesTable(filteredFeatures);
+        },
+        (error) => {
+          LOGGER.warn('cannot get chrome versions/features', error);
+        }
+      )
       .then(() => {
         CHROME.style.opacity = 1;
       });

@@ -128,7 +128,7 @@
     hook
       .findComponent(
         'videoInfoBar',
-        c => c.props && c.props.video && Object.keys(c.props).length === 1,
+        c => c.props && c.props.video && Object.keys(c.props).length === 1
       )
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
@@ -140,7 +140,7 @@
               const elem = hook.getDOMElement(this);
               const titleElem = _.get(
                 '.tw-card .tw-card-body p[data-test-selector="date-views"]',
-                elem,
+                elem
               );
               if (titleElem) {
                 const addedElem = _.getOrCreate('span.__ext__vod_date', titleElem);
@@ -155,7 +155,7 @@
     hook
       .findComponent(
         'channel-info-bar',
-        c => c.renderChannelMetadata && c.renderChannelViewersCount,
+        c => c.renderChannelMetadata && c.renderChannelViewersCount
       )
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
@@ -170,7 +170,7 @@
               if (actionContainer) {
                 const addedElem = _.getOrCreate(
                   'span.__ext__uptime.tw-align-center.tw-block.tw-mg-1',
-                  actionContainer,
+                  actionContainer
                 );
                 if (uptimes.has(this) && uptimes.get(this).startedAt) {
                   const uptime = (Date.now() - uptimes.get(this).startedAt) / 1000;
@@ -201,49 +201,54 @@
         });
       });
 
-    hook.findComponent('player', c => c.onPlayerReady && c.onPlayerPlay).then((wrappedComponent) => {
-      LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
+    hook
+      .findComponent('player', c => c.onPlayerReady && c.onPlayerPlay)
+      .then((wrappedComponent) => {
+        LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
-      const scrollers = new WeakMap();
-      const observers = new WeakMap();
-      wrappedComponent.wrap({
-        componentDidUpdate() {
-          if (this.playerRef && this.player && !scrollers.has(this)) {
-            const vs = new VideoScroller(this.playerRef, createScrollerOptions(this.player.player));
-            scrollers.set(this, vs);
-            // prevent auto playing next video
-            observers.set(
-              this,
-              _.observeAddedElements(document, (element) => {
-                if (element.matches('.pl-rec__cancel')) {
-                  element.click();
-                } else {
-                  const elem = element.querySelector('.pl-rec__cancel');
-                  if (elem) {
-                    elem.click();
+        const scrollers = new WeakMap();
+        const observers = new WeakMap();
+        wrappedComponent.wrap({
+          componentDidUpdate() {
+            if (this.playerRef && this.player && !scrollers.has(this)) {
+              const vs = new VideoScroller(
+                this.playerRef,
+                createScrollerOptions(this.player.player)
+              );
+              scrollers.set(this, vs);
+              // prevent auto playing next video
+              observers.set(
+                this,
+                _.observeAddedElements(document, (element) => {
+                  if (element.matches('.pl-rec__cancel')) {
+                    element.click();
+                  } else {
+                    const elem = element.querySelector('.pl-rec__cancel');
+                    if (elem) {
+                      elem.click();
+                    }
                   }
-                }
-              }),
-            );
-          }
-        },
-        componentWillUnmount() {
-          if (scrollers.has(this)) {
-            scrollers.get(this).destroy();
-            scrollers.delete(this);
-          }
-          if (observers.has(this)) {
-            observers.get(this).disconnect();
-            scrollers.delete(this);
-          }
-        },
-      });
+                })
+              );
+            }
+          },
+          componentWillUnmount() {
+            if (scrollers.has(this)) {
+              scrollers.get(this).destroy();
+              scrollers.delete(this);
+            }
+            if (observers.has(this)) {
+              observers.get(this).disconnect();
+              scrollers.delete(this);
+            }
+          },
+        });
 
-      // eslint-disable-next-line no-underscore-dangle
-      wrappedComponent._instances.forEach((instance) => {
-        instance.forceUpdate();
+        // eslint-disable-next-line no-underscore-dangle
+        wrappedComponent._instances.forEach((instance) => {
+          instance.forceUpdate();
+        });
       });
-    });
 
     hook
       .findComponent('videoPreviewCard', c => c.getVideoPreviousWatchPercentage)

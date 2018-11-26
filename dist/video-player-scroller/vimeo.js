@@ -20,10 +20,12 @@
     },
     addSpeedTextElement(container) {
       const box = _.create('.box');
-      const element = box.appendChild(_.create('button.rounded-box', {
-        textContent: '1x',
-        style: 'color:#fff',
-      }));
+      const element = box.appendChild(
+        _.create('button.rounded-box', {
+          textContent: '1x',
+          style: 'color:#fff',
+        })
+      );
       container.appendChild(box);
       return element;
     },

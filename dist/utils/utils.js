@@ -124,9 +124,8 @@ const _ = (function utils() {
       return parent.insertBefore(_.create(selector), before);
     },
     addCSS(css) {
-      const style =
-        _.get('style#ext_css') ||
-        document.head.parentNode.insertBefore(_.create('style#ext_css'), document.head.nextSibling);
+      const style = _.get('style#ext_css')
+        || document.head.parentNode.insertBefore(_.create('style#ext_css'), document.head.nextSibling);
       style.insertAdjacentHTML('beforeend', css);
     },
     // UTILS
@@ -225,9 +224,9 @@ const _ = (function utils() {
     },
     isInputActive() {
       return (
-        document.activeElement &&
-        (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) ||
-          document.activeElement.isContentEditable)
+        document.activeElement
+        && (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)
+          || document.activeElement.isContentEditable)
       );
     },
     has(object, key) {
@@ -273,10 +272,11 @@ const _ = (function utils() {
     toURI(url, params) {
       const str = url + (url.includes('?') ? '&' : '?');
       return (
-        str +
-        Object.keys(params)
-          .map(key =>
-            `${encodeURIComponent(key)}=${encodeURIComponent(params[key]).replace(/%20/g, '+')}`)
+        str
+        + Object.keys(params)
+          .map(
+            key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key]).replace(/%20/g, '+')}`
+          )
           .join('&')
       );
     },
@@ -300,9 +300,15 @@ const _ = (function utils() {
       return resp;
     },
     formatDuration(seconds) {
-      const sec = Math.floor(seconds % 60).toString().padStart(2, '0');
-      const min = Math.floor(Math.floor(seconds / 60) % 60).toString().padStart(2, '0');
-      const hrs = Math.floor(Math.floor(seconds / 60) / 60).toString().padStart(2, '0');
+      const sec = Math.floor(seconds % 60)
+        .toString()
+        .padStart(2, '0');
+      const min = Math.floor(Math.floor(seconds / 60) % 60)
+        .toString()
+        .padStart(2, '0');
+      const hrs = Math.floor(Math.floor(seconds / 60) / 60)
+        .toString()
+        .padStart(2, '0');
       return `${hrs}:${min}:${sec}`;
     },
     formatDateTime(dateTime, format = 'long') {
@@ -407,7 +413,7 @@ const _ = (function utils() {
         storeFormat = r => r,
         cacheLength = 3600000,
         logger,
-      } = {},
+      } = {}
     ) {
       const ajaxLogger = logger
         ? logger.push(`cached [${storeKey}]`)
@@ -416,11 +422,11 @@ const _ = (function utils() {
         ajaxLogger.debug('started');
         const stored = _.getJSON(storeKey);
         if (
-          !stored ||
-          !stored.data ||
-          !stored.cacheTime ||
-          Date.now() - stored.cacheTime > cacheLength ||
-          isStale(stored)
+          !stored
+          || !stored.data
+          || !stored.cacheTime
+          || Date.now() - stored.cacheTime > cacheLength
+          || isStale(stored)
         ) {
           _.ajax(url, { attrs, logger: ajaxLogger })
             .send()

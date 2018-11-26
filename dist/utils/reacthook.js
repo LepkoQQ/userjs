@@ -9,9 +9,11 @@ const ReactHook = (function createReactHook() {
   const ensureNotWrapped = (Component, wrapped) => {
     if (wrappedComponents.has(Component)) {
       const other = wrappedComponents.get(Component);
-      throw new Error(`WrappedComponent(${wrapped.name}) tried to wrap the same Component as WrappedComponent(${
-        other.name
-      })`);
+      throw new Error(
+        `WrappedComponent(${wrapped.name}) tried to wrap the same Component as WrappedComponent(${
+          other.name
+        })`
+      );
     }
     wrappedComponents.set(Component, wrapped);
     return Component;
@@ -82,8 +84,7 @@ const ReactHook = (function createReactHook() {
         }
         if (object instanceof Node) {
           if (this._reactKey == null) {
-            this._reactKey = Object.keys(object).find(key =>
-              key.startsWith('__reactInternalInstance$'));
+            this._reactKey = Object.keys(object).find(key => key.startsWith('__reactInternalInstance$'));
           }
           if (this._reactKey != null && _.has(object, this._reactKey)) {
             return object[this._reactKey];
@@ -110,7 +111,7 @@ const ReactHook = (function createReactHook() {
 
     _searchForComponent(
       { predicate, parent = this._reactInstance } = {},
-      state = { depth: 0, matchedComponent: null, instances: [] },
+      state = { depth: 0, matchedComponent: null, instances: [] }
     ) {
       // eslint-disable-next-line no-param-reassign
       parent = this._getReactInstance(parent);

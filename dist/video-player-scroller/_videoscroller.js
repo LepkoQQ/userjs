@@ -175,8 +175,12 @@ const VideoScroller = (function createVideoScroller() {
       this.progressContainerElement = this.options.getProgressContainerElement(this.player);
       if (this.progressContainerElement) {
         const progress = this.progressContainerElement.appendChild(_.create('.ext_progress_bar'));
-        this.progressFillBufferElement = progress.appendChild(_.create('.ext_progress_bar_fill_buffer'));
-        this.progressFillElement = progress.appendChild(_.create('.ext_progress_bar_fill', { style: `background:${this.options.color}` }));
+        this.progressFillBufferElement = progress.appendChild(
+          _.create('.ext_progress_bar_fill_buffer')
+        );
+        this.progressFillElement = progress.appendChild(
+          _.create('.ext_progress_bar_fill', { style: `background:${this.options.color}` })
+        );
         this.updateProgress = this.updateProgress.bind(this);
         this.options.addTimeUpdateEventListener(this.player, this.updateProgress);
       }
@@ -266,9 +270,9 @@ const VideoScroller = (function createVideoScroller() {
     updateProgress() {
       if (!this.destroyed && this.player) {
         if (
-          this.progressContainerElement &&
-          this.progressFillElement &&
-          this.progressFillBufferElement
+          this.progressContainerElement
+          && this.progressFillElement
+          && this.progressFillBufferElement
         ) {
           const duration = this.options.getVideoDuration(this.player);
           const currentTime = this.options.getCurrentTime(this.player);
@@ -316,14 +320,14 @@ const VideoScroller = (function createVideoScroller() {
     changeVolume(increase) {
       const rightOffset = this.options.getRightOffset(this.player);
       const bottomOffset = this.options.getBottomOffset(this.player);
-      const volumeBar =
-        _.get('.ext_volume_bar', this.player) ||
-        this.player.appendChild(_.create('.ext_volume_bar'));
-      const volumeBarFill =
-        _.get('.ext_volume_bar_fill', this.player) ||
-        volumeBar.appendChild(_.create('.ext_volume_bar_fill', {
-          style: `background:${this.options.color}`,
-        }));
+      const volumeBar = _.get('.ext_volume_bar', this.player)
+        || this.player.appendChild(_.create('.ext_volume_bar'));
+      const volumeBarFill = _.get('.ext_volume_bar_fill', this.player)
+        || volumeBar.appendChild(
+          _.create('.ext_volume_bar_fill', {
+            style: `background:${this.options.color}`,
+          })
+        );
 
       if (this.player.hasAttribute('data-ext_volume_timeout')) {
         const oldTid = this.player.getAttribute('data-ext_volume_timeout');
