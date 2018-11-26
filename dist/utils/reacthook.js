@@ -9,7 +9,9 @@ const ReactHook = (function createReactHook() {
   const ensureNotWrapped = (Component, wrapped) => {
     if (wrappedComponents.has(Component)) {
       const other = wrappedComponents.get(Component);
-      throw new Error(`WrappedComponent(${wrapped.name}) tried to wrap the same Component as WrappedComponent(${other.name})`);
+      throw new Error(`WrappedComponent(${wrapped.name}) tried to wrap the same Component as WrappedComponent(${
+        other.name
+      })`);
     }
     wrappedComponents.set(Component, wrapped);
     return Component;
@@ -38,8 +40,11 @@ const ReactHook = (function createReactHook() {
           if (_.has(proto, key)) {
             const origFunc = proto[key];
             proto[key] = function wrapped(...args) {
-              func.apply(this, args);
-              return origFunc.apply(this, args);
+              const ret = func.apply(this, args);
+              if (ret === undefined) {
+                return origFunc.apply(this, args);
+              }
+              return ret;
             };
           } else {
             proto[key] = func;
@@ -63,18 +68,22 @@ const ReactHook = (function createReactHook() {
 
     async _init(rootSelector) {
       this._rootElement = await _.waitFor(() => _.get(rootSelector));
-      const reactRootContainer = await _.waitFor(() => this._rootElement._reactRootContainer);
+      let reactRootContainer = await _.waitFor(() => this._rootElement._reactRootContainer);
+      if (reactRootContainer._internalRoot && reactRootContainer._internalRoot.current) {
+        reactRootContainer = reactRootContainer._internalRoot;
+      }
       this._reactInstance = reactRootContainer.current.child;
     }
 
     _getReactInstance(object) {
       if (object != null) {
-        if (_.has(object, '_reactInternalFiber')) {
+        if (object._reactInternalFiber) {
           return object._reactInternalFiber;
         }
         if (object instanceof Node) {
           if (this._reactKey == null) {
-            this._reactKey = Object.keys(object).find(key => key.startsWith('__reactInternalInstance$'));
+            this._reactKey = Object.keys(object).find(key =>
+              key.startsWith('__reactInternalInstance$'));
           }
           if (this._reactKey != null && _.has(object, this._reactKey)) {
             return object[this._reactKey];
@@ -85,13 +94,15 @@ const ReactHook = (function createReactHook() {
     }
 
     getDOMElement(object) {
-      object = this._getReactInstance(object); // eslint-disable-line no-param-reassign
+      // eslint-disable-next-line no-param-reassign
+      object = this._getReactInstance(object);
 
       while (object) {
         if (object.stateNode instanceof Node) {
           return object.stateNode;
         }
-        object = object.child; // eslint-disable-line no-param-reassign
+        // eslint-disable-next-line no-param-reassign
+        object = object.child;
       }
 
       return null;
@@ -101,9 +112,11 @@ const ReactHook = (function createReactHook() {
       { predicate, parent = this._reactInstance } = {},
       state = { depth: 0, matchedComponent: null, instances: [] },
     ) {
-      parent = this._getReactInstance(parent); // eslint-disable-line no-param-reassign
+      // eslint-disable-next-line no-param-reassign
+      parent = this._getReactInstance(parent);
 
-      if (parent == null || state.depth > 2000) {
+      if (parent == null || state.depth > 20000) {
+        // console.log('scoller - bailed search for component at depth', state.depth);
         return {
           matchedComponent: state.matchedComponent,
           instances: state.instances,
@@ -114,19 +127,21 @@ const ReactHook = (function createReactHook() {
 
       const instance = parent.stateNode;
 
-      if (instance) {
+      if (instance && !(instance instanceof Node)) {
         if (state.matchedComponent == null) {
           if (predicate.call(null, instance)) {
+            // console.log('found component at depth', state.depth);
             state.matchedComponent = instance.constructor;
             state.instances.push(instance);
           }
         } else if (state.matchedComponent === instance.constructor) {
+          // console.log('found instance at depth', state.depth);
           state.instances.push(instance);
         }
       }
 
       if (parent.child) {
-        let child = parent.child;
+        let { child } = parent;
         while (child) {
           this._searchForComponent({ predicate, parent: child }, state);
           child = child.sibling;
@@ -146,16 +161,22 @@ const ReactHook = (function createReactHook() {
     }
 
     _onMutation(node) {
-      node = this._getReactInstance(node); // eslint-disable-line no-param-reassign
+      // eslint-disable-next-line no-param-reassign
+      node = this._getReactInstance(node);
 
       if (node == null || this._mutationObserverPredicates.length === 0) {
         return;
       }
 
       for (let i = this._mutationObserverPredicates.length - 1; i >= 0; i--) {
-        const { name, predicate, resolve, reject } = this._mutationObserverPredicates[i];
+        const {
+          name, predicate, resolve, reject,
+        } = this._mutationObserverPredicates[i];
         try {
-          const { instances, matchedComponent } = this._searchForComponent({ predicate });
+          const { instances, matchedComponent } = this._searchForComponent({
+            predicate,
+            parent: node,
+          });
           if (matchedComponent != null) {
             this._mutationObserverPredicates.splice(i, 1);
             resolve(new WrappedComponent(name, matchedComponent, instances, this));
@@ -174,7 +195,11 @@ const ReactHook = (function createReactHook() {
       if (this._mutationObserver == null) {
         this._mutationObserver = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
-            this._onMutation(mutation.target);
+            if (mutation.addedNodes && mutation.addedNodes.length) {
+              mutation.addedNodes.forEach((node) => {
+                this._onMutation(node.parentElement);
+              });
+            }
           });
         });
       }
@@ -198,7 +223,12 @@ const ReactHook = (function createReactHook() {
         if (matchedComponent != null) {
           resolve(new WrappedComponent(name, matchedComponent, instances, this));
         } else {
-          this._addToObserver({ name, predicate, resolve, reject });
+          this._addToObserver({
+            name,
+            predicate,
+            resolve,
+            reject,
+          });
         }
       });
     }

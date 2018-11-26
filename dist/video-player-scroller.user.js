@@ -152,6 +152,23 @@
           }
           return false;
         },
+        addTimeUpdateEventListener(player, func) {
+          if (playerApi) {
+            playerApi.addEventListener('timeupdate', func);
+          }
+          // _.waitFor(() => _.get('video', player))
+          //   .then((video) => {
+          //     LOGGER.log('--- This is the video', video);
+          //     // video.addEventListener('timeupdate', func);
+          //   });
+        },
+        removeTimeUpdateEventListener(player, func) {
+          if (playerApi) {
+            playerApi.removeEventListener('timeupdate', func);
+          }
+          // const video = _.get('video', player);
+          // video.removeEventListener('timeupdate', func);
+        },
       };
     }
 
