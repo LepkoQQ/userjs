@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        New Tab Info Boxes
 // @namespace   http://lepko.net/
-// @version     2.0.4
+// @version     2.0.5
 // @run-at      document-start
 // @match       *://www.google.com/_/chrome/newtab*
 // @match       *://www.google.com/_/open/404
@@ -668,5 +668,9 @@
     document.head.remove();
     document.body.remove();
     LOGGER.log('removed head and body');
+
+    window.history.replaceState('', '', 'https://www.google.com/_/chrome/newtab?ie=UTF-8');
+    document.documentElement.insertAdjacentHTML('afterbegin', '<title>New Tab</title>');
+    LOGGER.log('changed url and title');
   });
 }(this.unsafeWindow || window));
