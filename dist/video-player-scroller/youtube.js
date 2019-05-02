@@ -20,6 +20,9 @@
       const chromeBottom = _.get('.ytp-chrome-bottom', player);
       return chromeBottom ? _.getStyle(chromeBottom, 'height') * 1.5 : 0;
     },
+    getVolume(player) {
+      return player.isMuted() ? 0 : player.getVolume();
+    },
     changeVolume(player, increase) {
       const step = increase ? 5 : -5;
       const volume = player.isMuted() ? 0 : player.getVolume();

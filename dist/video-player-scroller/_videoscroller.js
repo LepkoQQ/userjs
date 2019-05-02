@@ -19,6 +19,18 @@ const VideoScroller = (function createVideoScroller() {
       right: 0;
       width: 100%;
     }
+    .ext_playback_rate_text {
+      position: absolute;
+      background: rgba(255,255,255,0.4);
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .1s cubic-bezier(0.4,0,1,1);
+      font-size: 18px;
+      padding: 5px 6px;
+      line-height: 1;
+      font-weight: 400;
+    }
     .ext_progress_bar {
       position: absolute;
       bottom: 0;
@@ -56,6 +68,10 @@ const VideoScroller = (function createVideoScroller() {
     // eslint-disable-next-line no-unused-vars
     getBottomOffset(player) {
       return 0;
+    },
+    getVolume(player) {
+      const video = _.get('video', player);
+      return video.muted ? 0 : video.volume;
     },
     changeVolume(player, increase) {
       const step = 0.05;
@@ -314,6 +330,7 @@ const VideoScroller = (function createVideoScroller() {
       if (this.player && this.speedTextElement) {
         const newSpeed = this.options.changeSpeed(this.player, increase);
         this.speedTextElement.textContent = `${newSpeed}x`;
+        this.showVideoOverlayElements();
       }
     }
 
@@ -325,6 +342,11 @@ const VideoScroller = (function createVideoScroller() {
     }
 
     changeVolume(increase) {
+      this.options.changeVolume(this.player, increase);
+      this.showVideoOverlayElements();
+    }
+
+    showVideoOverlayElements() {
       const rightOffset = this.options.getRightOffset(this.player);
       const bottomOffset = this.options.getBottomOffset(this.player);
       const volumeBar = _.get('.ext_volume_bar', this.player)
@@ -335,34 +357,43 @@ const VideoScroller = (function createVideoScroller() {
             style: `background:${this.options.color}`,
           })
         );
+      const playbackRateText = _.get('.ext_playback_rate_text', this.player)
+        || this.player.appendChild(_.create('.ext_playback_rate_text'));
 
-      if (this.player.hasAttribute('data-ext_volume_timeout')) {
-        const oldTid = this.player.getAttribute('data-ext_volume_timeout');
+      if (this.player.hasAttribute('data-ext_overlay_timeout')) {
+        const oldTid = this.player.getAttribute('data-ext_overlay_timeout');
         if (oldTid) {
           clearTimeout(+oldTid);
-          this.player.removeAttribute('data-ext_volume_timeout');
+          this.player.removeAttribute('data-ext_overlay_timeout');
         }
       }
 
-      const newVolume = this.options.changeVolume(this.player, increase);
-
-      volumeBarFill.style.height = `${newVolume}%`;
+      volumeBarFill.style.height = `${this.options.getVolume(this.player)}%`;
       volumeBar.style.visibility = 'visible';
       volumeBar.style.opacity = 1;
       volumeBar.style.right = `${rightOffset}px`;
       volumeBar.style.bottom = `${bottomOffset}px`;
+
+      playbackRateText.textContent = `${this.options.getPlaybackRate(this.player)}x`;
+      playbackRateText.style.visibility = 'visible';
+      playbackRateText.style.opacity = 1;
+      playbackRateText.style.right = `${rightOffset + 20}px`;
+      playbackRateText.style.bottom = `${bottomOffset + 170}px`;
+
       const newTid = setTimeout(() => {
         volumeBar.style.opacity = 0;
+        playbackRateText.style.opacity = 0;
         const onTransitionEnd = () => {
-          if (!this.player.hasAttribute('data-ext_volume_timeout')) {
+          if (!this.player.hasAttribute('data-ext_overlay_timeout')) {
             volumeBar.style.visibility = 'hidden';
+            playbackRateText.style.visibility = 'hidden';
           }
           volumeBar.removeEventListener('transitionend', onTransitionEnd);
         };
         volumeBar.addEventListener('transitionend', onTransitionEnd);
-        this.player.removeAttribute('data-ext_volume_timeout');
+        this.player.removeAttribute('data-ext_overlay_timeout');
       }, 2000);
-      this.player.setAttribute('data-ext_volume_timeout', newTid);
+      this.player.setAttribute('data-ext_overlay_timeout', newTid);
     }
 
     static getStepSizeFromKeyEvent(event) {
