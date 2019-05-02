@@ -254,6 +254,13 @@ const VideoScroller = (function createVideoScroller() {
           this.changeVolume(event.code === 'ArrowUp');
           break;
         }
+        case 'Period':
+        case 'Comma': {
+          event.preventDefault();
+          event.stopPropagation();
+          this.changeSpeed(event.code === 'Period');
+          break;
+        }
         default:
           break;
       }
