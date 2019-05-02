@@ -71,7 +71,7 @@ const VideoScroller = (function createVideoScroller() {
     },
     getVolume(player) {
       const video = _.get('video', player);
-      return video.muted ? 0 : video.volume;
+      return video.muted ? 0 : video.volume * 100;
     },
     changeVolume(player, increase) {
       const step = 0.05;
@@ -330,7 +330,7 @@ const VideoScroller = (function createVideoScroller() {
       if (this.player && this.speedTextElement) {
         const newSpeed = this.options.changeSpeed(this.player, increase);
         this.speedTextElement.textContent = `${newSpeed}x`;
-        this.showVideoOverlayElements();
+        setTimeout(() => this.showVideoOverlayElements(), 0);
       }
     }
 
@@ -343,7 +343,7 @@ const VideoScroller = (function createVideoScroller() {
 
     changeVolume(increase) {
       this.options.changeVolume(this.player, increase);
-      this.showVideoOverlayElements();
+      setTimeout(() => this.showVideoOverlayElements(), 0);
     }
 
     showVideoOverlayElements() {
