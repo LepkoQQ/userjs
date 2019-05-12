@@ -5,7 +5,7 @@ const VideoScroller = (function createVideoScroller() {
   _.addCSS(`
     .ext_volume_bar {
       position: absolute;
-      background: rgba(255,255,255,0.4);
+      background: rgba(0,0,0,0.4);
       z-index: 2000;
       width: 13px;
       height: 200px;
@@ -21,7 +21,7 @@ const VideoScroller = (function createVideoScroller() {
     }
     .ext_playback_rate_text {
       position: absolute;
-      background: rgba(255,255,255,0.4);
+      background: rgba(0,0,0,0.4);
       z-index: 2000;
       opacity: 0;
       visibility: hidden;
@@ -272,9 +272,11 @@ const VideoScroller = (function createVideoScroller() {
         }
         case 'Period':
         case 'Comma': {
-          event.preventDefault();
-          event.stopPropagation();
-          this.changeSpeed(event.code === 'Period');
+          if (event.shiftKey) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.changeSpeed(event.code === 'Period');
+          }
           break;
         }
         default:
