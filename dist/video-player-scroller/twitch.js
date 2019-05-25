@@ -251,21 +251,21 @@
       });
 
     hook
-      .findComponent('videoPreviewCard', c => c.getVideoPreviousWatchPercentage)
+      .findComponent('videoPreviewCard', c => c.generateSearchString)
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
         // Fix 100% watched vods not being marked as watched
         // eslint-disable-next-line no-underscore-dangle
         const proto = wrappedComponent._component.prototype;
-        const origWatchPercentage = proto.getVideoPreviousWatchPercentage;
-        proto.getVideoPreviousWatchPercentage = function fixedWatchPercentage() {
+        const origRender = proto.render;
+        proto.render = function fixedWatchPercentageRender() {
           if (this.props.video && this.props.video.self && this.props.video.self.viewingHistory) {
             if (this.props.video.self.viewingHistory.position === 0) {
-              return 100;
+              this.props.video.self.viewingHistory.position = this.props.video.lengthSeconds;
             }
           }
-          return origWatchPercentage.call(this);
+          return origRender.call(this);
         };
 
         // eslint-disable-next-line no-underscore-dangle
