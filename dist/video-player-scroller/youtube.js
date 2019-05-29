@@ -207,7 +207,7 @@
       // eslint-disable-next-line no-underscore-dangle
       const { videoId } = elem.__data__.data;
       if (videoId) {
-        const API_KEY = 'AIzaSyBwHoTOKR5AkZ26jb_ddW309O4U8hFhPeo';
+        const API_KEY = 'AIzaSyBCHk4ih7SQWLd0mEFzwg-IaljH89UH3xM';
         const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`;
         _.ajax(url, { logger: LOGGER })
           .send()
