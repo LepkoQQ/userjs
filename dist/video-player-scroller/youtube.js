@@ -4,6 +4,7 @@
 
   let LOGGER;
   let stopNextAutoplay = true;
+  let lastReferrer = null;
   let videoScroller;
   let publishLinkObserver;
 
@@ -102,14 +103,15 @@
     }
   }
 
-  function shouldStopAutoplay(playerData) {
-    const referrer = _.getKey(playerData, ['args', 'referrer']);
-    if (referrer) {
-      if (playerData.args.list && referrer.includes(playerData.args.list)) {
+  function shouldStopAutoplay(eventDetail) {
+    if (lastReferrer) {
+      const list = _.getKey(eventDetail, ['endpoint', 'watchEndpoint', 'playlistId']);
+      const vid = _.getKey(eventDetail, ['endpoint', 'watchEndpoint', 'videoId']);
+      if (list && lastReferrer.includes(list)) {
         return false;
       }
-      if (playerData.args.video_id && referrer.includes(playerData.args.video_id)) {
-        return !playerData.args.list;
+      if (vid && lastReferrer.includes(vid)) {
+        return !list;
       }
     }
     return true;
@@ -153,8 +155,9 @@
     }
   }
 
-  async function onPlayerData(playerData) {
-    stopNextAutoplay = shouldStopAutoplay(playerData);
+  async function onPlayerData(eventDetail) {
+    stopNextAutoplay = shouldStopAutoplay(eventDetail);
+    const playerData = eventDetail.response.player;
     const player = await _.waitFor(`#${playerData.attrs.id}`);
     stopAutoplay(player);
 
@@ -275,6 +278,7 @@
 
         document.addEventListener('yt-navigate', () => {
           stopNextAutoplay = true;
+          lastReferrer = window.location.href;
         });
 
         document.addEventListener('yt-navigate-start', () => {
@@ -283,9 +287,8 @@
 
         document.addEventListener('yt-navigate-finish', (event) => {
           forceTheater();
-          const playerData = event.detail.response.player;
-          if (playerData) {
-            onPlayerData(playerData);
+          if (event.detail) {
+            onPlayerData(event.detail);
             addChannelLinks();
           }
           addPublishLinks();
