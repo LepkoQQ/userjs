@@ -427,9 +427,7 @@
         return;
       }
 
-      const STREAMS_URL = `https://api.twitch.tv/kraken/streams/followed?oauth_token=${
-        AUTH_TOKEN.token
-      }`;
+      const STREAMS_URL = 'https://api.twitch.tv/kraken/streams/followed';
 
       const addTwitchTable = (obj) => {
         let html = `<div class="title"><a href="${obj.url}" target="_top">${obj.title}</a></div>`;
@@ -457,6 +455,7 @@
           headers: {
             Accept: 'application/vnd.twitchtv.v5+json',
             'Client-ID': CLIENT_ID,
+            Authorization: `OAuth ${AUTH_TOKEN.token}`,
           },
         },
         parse(response) {
