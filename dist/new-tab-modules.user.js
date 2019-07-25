@@ -271,27 +271,33 @@
     const SCHEDULE_SITES = {
       itmejp: {
         title: 'itmeJP',
-        url: 'http://itmejp.com/schedule/',
-        apiUrl: 'http://itmejp.com/api/events-future/',
-        ajaxAttrs: {},
+        url: 'https://www.twitch.tv/itmejp/events',
+        apiUrl: 'https://api.twitch.tv/kraken/channels/10817445/events',
+        ajaxAttrs: {
+          headers: {
+            Accept: 'application/vnd.twitchtv.v5+json',
+            'Client-ID': 'a936j1ucnma1ucntkp2qf8vepul2tnn',
+          },
+        },
         parseResponse(response) {
           return JSON.parse(response);
         },
-        getTimeZone(resp) {
-          if (resp && resp.length) {
-            return resp[0].event_dt_timezone;
-          }
-          return 'America/New_York';
+        getTimeZone() {
+          return 'UTC'; // Twitch events api returs ISO time strings with UTC time
         },
         getEntries(resp) {
-          return resp;
+          const cutoff = moment().subtract(1, 'days');
+          const filtered = resp.events.filter(event => moment(event.start_time) > cutoff);
+          filtered.sort((a, b) => moment(a.start_time) - moment(b.start_time));
+          return filtered;
         },
         getName(entry) {
-          return entry.event_name;
+          return entry.title;
         },
-        getTimestamp(entry, timeZone) {
-          const timeStart = entry.event_dt_start;
-          return moment.tz(timeStart, 'YYYY-MM-DD HH-mm-ss', timeZone).valueOf();
+        getTimestamp(entry) {
+          // No timezone needed here because we have ISO time string with UTC
+          const timeStart = entry.start_time;
+          return moment(timeStart).valueOf();
         },
       },
       adamkoebel: {
