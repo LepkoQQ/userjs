@@ -18,8 +18,6 @@
 // @nocompat    Chrome
 // @connect     api.twitch.tv
 // @connect     chromestatus.com
-// @connect     itmejp.com
-// @connect     adam-koebel.com
 // ==/UserScript==
 
 /* global _:false, moment:false */
@@ -430,7 +428,7 @@
 
       const STREAMS_URL = `https://api.twitch.tv/kraken/streams/followed?oauth_token=${
         AUTH_TOKEN.token
-      }&client_id=${CLIENT_ID}`;
+      }`;
 
       const addTwitchTable = (obj) => {
         let html = `<div class="title"><a href="${obj.url}" target="_top">${obj.title}</a></div>`;
@@ -454,6 +452,12 @@
       };
 
       _.cachedAjax('live-twitch', STREAMS_URL, {
+        attrs: {
+          headers: {
+            Accept: 'application/vnd.twitchtv.v5+json',
+            'Client-ID': CLIENT_ID,
+          },
+        },
         parse(response) {
           const jsonR = JSON.parse(response);
           const obj = {
