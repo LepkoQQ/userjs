@@ -17,6 +17,7 @@
 // @grant       unsafeWindow
 // @nocompat    Chrome
 // @connect     api.twitch.tv
+// @connect     id.twitch.tv
 // @connect     chromestatus.com
 // ==/UserScript==
 
@@ -418,7 +419,7 @@
 
       const CLIENT_ID = 'a936j1ucnma1ucntkp2qf8vepul2tnn';
       const REDIR_URI = 'http://lepko.net/twitchauth';
-      const AUTH_URL = `https://api.twitch.tv/kraken/oauth2/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIR_URI}&scope=user_read`;
+      const AUTH_URL = `https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${REDIR_URI}&scope=user_read`;
       const AUTH_TOKEN = _.getJSON('twitch-auth-token');
 
       if (!AUTH_TOKEN || !AUTH_TOKEN.token) {
