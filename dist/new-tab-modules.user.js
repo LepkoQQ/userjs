@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        New Tab Info Boxes
 // @namespace   http://lepko.net/
-// @version     2.0.5
+// @version     2.0.6
 // @run-at      document-start
 // @match       *://www.google.com/_/chrome/newtab*
 // @match       *://www.google.com/_/open/404
