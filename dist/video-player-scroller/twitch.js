@@ -4,10 +4,10 @@
 
   let LOGGER;
 
-  function createScrollerOptions(playerApi) {
+  function createScrollerOptions(playerApi, playerEvents) {
     return {
       logger: LOGGER,
-      color: '#a991d4',
+      color: 'rgb(169, 112, 255)',
       // eslint-disable-next-line no-unused-vars
       getRightOffset(player) {
         return 10;
@@ -16,15 +16,31 @@
       getBottomOffset(player) {
         return 88;
       },
+      // eslint-disable-next-line no-unused-vars
+      getVolume(player) {
+        return playerApi.isMuted() ? 0 : playerApi.getVolume() * 100;
+      },
+      changeVolume(player, increase) {
+        const step = 0.05;
+        const volume = playerApi.isMuted() ? 0 : playerApi.getVolume();
+        const newVolume = Math.max(Math.min(increase ? volume + step : volume - step, 1), 0);
+        if (newVolume > 0) {
+          playerApi.setMuted(false);
+        }
+        playerApi.setVolume(newVolume);
+        return newVolume * 100;
+      },
       getSpeedContainerElement(player) {
-        return _.get('.player-buttons-right', player);
+        return _.get('.player-controls__right-control-group', player);
       },
       addSpeedTextElement(container) {
-        const element = _.create('button.player-button', {
-          style: 'text-align:center;padding-top:5px',
+        const div = _.create('div');
+        const element = _.create('span.tw-pill tw-semibold tw-upcase', {
+          style: 'margin-right:0.5rem',
           textContent: '1x',
         });
-        container.insertBefore(element, container.firstElementChild);
+        div.appendChild(element);
+        container.insertBefore(div, container.firstElementChild);
         return element;
       },
       getPlaybackRate() {
@@ -46,9 +62,6 @@
         }
         return 1;
       },
-      getProgressContainerElement(player) {
-        return _.get('#default-player .player-root', player);
-      },
       getVideoDuration() {
         if (playerApi) {
           return playerApi.getDuration();
@@ -57,7 +70,16 @@
       },
       getCurrentTime() {
         if (playerApi) {
-          return playerApi.getCurrentTime();
+          return playerApi.getPosition();
+        }
+        return 0;
+      },
+      getCurrentBuffer() {
+        if (playerApi) {
+          const buffered = playerApi.getBuffered();
+          if (buffered.end) {
+            return buffered.end;
+          }
         }
         return 0;
       },
@@ -81,22 +103,22 @@
       seekVideo(player, event) {
         const step = VideoScroller.getStepSizeFromKeyEvent(event);
         if (playerApi && step !== 0) {
-          const playerTime = playerApi.getCurrentTime();
+          const playerTime = playerApi.getPosition();
           if (playerTime) {
-            playerApi.setCurrentTime(playerTime + step);
+            playerApi.seekTo(playerTime + step);
             return true;
           }
         }
         return false;
       },
       addTimeUpdateEventListener(player, func) {
-        if (playerApi) {
-          playerApi.addEventListener('timeupdate', func);
+        if (playerEvents) {
+          playerEvents.addEventListener('PlayerTimeUpdate', func);
         }
       },
       removeTimeUpdateEventListener(player, func) {
-        if (playerApi) {
-          playerApi.removeEventListener('timeupdate', func);
+        if (playerEvents) {
+          playerEvents.removeEventListener('PlayerTimeUpdate', func);
         }
       },
     };
@@ -202,29 +224,35 @@
       });
 
     hook
-      .findComponent('player', c => c.onPlayerReady && c.onPlayerPlay)
+      .findComponent(
+        'highwind-player',
+        c => c.setPlayerActive && c.props && c.props.playerEvents && c.props.mediaPlayerInstance
+      )
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
         const scrollers = new WeakMap();
         const observers = new WeakMap();
         wrappedComponent.wrap({
-          componentDidUpdate() {
-            if (this.playerRef && this.player && !scrollers.has(this)) {
+          maybeAttachDomEventListeners() {
+            if (this.props.containerRef && this.props.mediaPlayerInstance && !scrollers.has(this)) {
               const vs = new VideoScroller(
-                this.playerRef,
-                createScrollerOptions(this.player.player)
+                this.props.containerRef,
+                createScrollerOptions(this.props.mediaPlayerInstance, this.props.playerEvents)
               );
               scrollers.set(this, vs);
               // prevent auto playing next video
+              const x = '.player-overlay-background button.tw-button-icon .tw-button-icon__icon';
               observers.set(
                 this,
                 _.observeAddedElements(document, (element) => {
-                  if (element.matches('.pl-rec__cancel')) {
+                  if (element.matches(x)) {
+                    // console.log(element);
                     element.click();
                   } else {
-                    const elem = element.querySelector('.pl-rec__cancel');
+                    const elem = element.querySelector(x);
                     if (elem) {
+                      // console.log(elem);
                       elem.click();
                     }
                   }
@@ -284,8 +312,13 @@
         _.addCSS(`
           .ext_progress_bar {
             opacity: 0;
+            background-color: hsla(0,0%,100%,.35);
           }
-          .hover-display.pl-hover-transition-out + .ext_progress_bar {
+          .ext_progress_bar .ext_progress_bar_fill_buffer {
+            background-color: rgba(255, 255, 255, 0.85);
+          }
+          .highwind-video-player__overlay .tw-transition--exit-active + .ext_progress_bar,
+          .highwind-video-player__overlay .tw-transition--exit-done + .ext_progress_bar {
             opacity: 1;
           }
           body .pl-stats-list {
