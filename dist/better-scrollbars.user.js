@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Better Scrollbars
 // @namespace   http://poglej.ga/
-// @version     1.0.0
+// @version     1.0.1
 // @run-at      document-start
 // @include     *
 // @grant       GM_addStyle
@@ -18,6 +18,10 @@ GM_addStyle(`
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
