@@ -150,7 +150,7 @@
     hook
       .findComponent(
         'videoInfoBar',
-        c => c.props && c.props.video && Object.keys(c.props).length === 1
+        (c) => c.props && c.props.video && Object.keys(c.props).length === 1
       )
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
@@ -177,7 +177,7 @@
     hook
       .findComponent(
         'channel-info-bar',
-        c => c.renderChannelMetadata && c.renderChannelViewersCount
+        (c) => c.renderChannelMetadata && c.renderChannelViewersCount
       )
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
@@ -226,7 +226,7 @@
     hook
       .findComponent(
         'highwind-player',
-        c => c.setPlayerActive && c.props && c.props.playerEvents && c.props.mediaPlayerInstance
+        (c) => c.setPlayerActive && c.props && c.props.playerEvents && c.props.mediaPlayerInstance
       )
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
@@ -279,7 +279,7 @@
       });
 
     hook
-      .findComponent('videoPreviewCard', c => c.generateSearchString)
+      .findComponent('videoPreviewCard', (c) => c.generateSearchString)
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
@@ -317,8 +317,8 @@
           .ext_progress_bar .ext_progress_bar_fill_buffer {
             background-color: rgba(255, 255, 255, 0.85);
           }
-          .highwind-video-player__overlay .tw-transition--exit-active + .ext_progress_bar,
-          .highwind-video-player__overlay .tw-transition--exit-done + .ext_progress_bar {
+          .video-player__overlay .tw-transition--exit-active + .ext_progress_bar,
+          .video-player__overlay .tw-transition--exit-done + .ext_progress_bar {
             opacity: 1;
           }
           body .pl-stats-list {
@@ -351,4 +351,4 @@
       },
     };
   }
-}(this, this.unsafeWindow || window));
+})(this, this.unsafeWindow || window);
