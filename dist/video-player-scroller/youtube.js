@@ -129,7 +129,7 @@
       if (stopNextAutoplay) {
         LOGGER.log('stopping player');
         stopNextAutoplay = false;
-        if (hasTimeStamp || isGoogleApiEmbed) {
+        if (true || hasTimeStamp || isGoogleApiEmbed) {
           player.pauseVideo();
         } else {
           player.stopVideo();
@@ -296,4 +296,4 @@
       },
     };
   }
-}(this, this.unsafeWindow || window));
+})(this, this.unsafeWindow || window);
