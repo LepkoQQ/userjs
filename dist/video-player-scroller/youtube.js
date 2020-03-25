@@ -119,7 +119,9 @@
 
   function stopAutoplay(player) {
     const TIMESTAMP_REGEX = /[?#&](?:star)?t(?:ime(?:_continue)?)?=/i;
-    const hasTimeStamp = window.location.href.match(TIMESTAMP_REGEX);
+    // const hasTimeStamp = window.location.href.match(TIMESTAMP_REGEX);
+    // NOTE: Always pause video for now; stopping seems to break playback.
+    const hasTimeStamp = true;
     const isGoogleApiEmbed = window.location.hostname === 'youtube.googleapis.com';
     const state = player.getPlayerState();
     LOGGER.log('player found; state =', state);
@@ -129,7 +131,7 @@
       if (stopNextAutoplay) {
         LOGGER.log('stopping player');
         stopNextAutoplay = false;
-        if (true || hasTimeStamp || isGoogleApiEmbed) {
+        if (hasTimeStamp || isGoogleApiEmbed) {
           player.pauseVideo();
         } else {
           player.stopVideo();
