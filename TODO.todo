@@ -1,0 +1,4 @@
+☐ add old youtube and yt embed support
+
+TODO Improvements:
+  ☐ update utils _.create with better parsing selectors: https://github.com/redom/redom/blob/master/esm/create-element.js
