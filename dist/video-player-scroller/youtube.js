@@ -6,7 +6,6 @@
   let stopNextAutoplay = true;
   let lastReferrer = null;
   let videoScroller;
-  let publishLinkObserver;
 
   const scrollerOptions = {
     color: '#f12b24',
@@ -94,15 +93,6 @@
     },
   };
 
-  function forceTheater() {
-    const watch = _.get('ytd-watch');
-    if (watch && !watch.hasAttribute('theater')) {
-      document.cookie = 'wide=1; domain=.youtube.com; path=/;';
-      watch.setAttribute('theater-requested_', true);
-      watch.setAttribute('theater', true);
-    }
-  }
-
   function shouldStopAutoplay(eventDetail) {
     if (lastReferrer) {
       const list = _.getKey(eventDetail, ['endpoint', 'watchEndpoint', 'playlistId']);
@@ -173,92 +163,6 @@
     }
   }
 
-  function addChannelLinks() {
-    requestAnimationFrame(async () => {
-      const videoOwner = await _.waitFor('ytd-video-owner-renderer');
-      const ownerContainer = await _.waitFor('#owner-container', { parent: videoOwner });
-      await _.waitFor(() => ownerContainer.textContent.trim());
-      if (videoOwner && ownerContainer) {
-        let url;
-        Array.from(_.all('a:not(.__ext__channel_videos)', videoOwner)).some((element) => {
-          const href = element.getAttribute('href');
-          if (href) {
-            if (href.startsWith('/user/')) {
-              url = href;
-              return true;
-            }
-            if (href.startsWith('/channel/')) {
-              url = href;
-            }
-          }
-          return false;
-        });
-        if (url) {
-          url = `${url.split('?')[0]}/videos?view=0&flow=grid`;
-          const link = _.getOrCreate('a.yt-simple-endpoint.__ext__channel_videos', ownerContainer);
-          link.href = url;
-          link.style.cssText = 'padding:0 20px;font-weight:500;line-height:1.6rem;';
-          link.textContent = 'Channel Videos';
-        }
-      }
-    });
-  }
-
-  function onPubTimeClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    const elem = event.currentTarget.closest('ytd-grid-video-renderer');
-    if (elem) {
-      // eslint-disable-next-line no-underscore-dangle
-      const { videoId } = elem.__data__.data;
-      if (videoId) {
-        const API_KEY = 'AIzaSyBCHk4ih7SQWLd0mEFzwg-IaljH89UH3xM';
-        const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`;
-        _.ajax(url, { logger: LOGGER })
-          .send()
-          .then((response) => {
-            const jsonR = JSON.parse(response);
-            const time = Date.parse(jsonR.items[0].snippet.publishedAt);
-            event.target.textContent = _.formatDateTime(time);
-          })
-          .catch((error) => {
-            LOGGER.warn('Publish Date Failed', error);
-            event.target.textContent = ':(';
-          });
-      }
-    }
-  }
-
-  function addPublishLink(element) {
-    const meta = _.get('#additional-metadata-line', element);
-    if (meta) {
-      const pubTime = _.get('.__ext__pubtime', meta);
-      if (!pubTime) {
-        const onClick = (event) => {
-          onPubTimeClick(event);
-          event.currentTarget.removeEventListener('click', onClick, true);
-          event.currentTarget.style.cursor = 'inherit';
-        };
-        meta
-          .appendChild(_.create('span.__ext__pubtime', '⏱'))
-          .addEventListener('click', onClick, true);
-      }
-    }
-  }
-
-  function addPublishLinks() {
-    if (publishLinkObserver == null) {
-      _.all('ytd-grid-video-renderer').forEach((element) => {
-        addPublishLink(element);
-      });
-      publishLinkObserver = _.observeAddedElements(document, (element) => {
-        if (element.tagName === 'YTD-GRID-VIDEO-RENDERER') {
-          addPublishLink(element);
-        }
-      });
-    }
-  }
-
   if (context.vpsSite == null && window.location.host.match(/\.youtube\.com$/)) {
     context.vpsSite = {
       init(logger) {
@@ -288,12 +192,9 @@
         });
 
         document.addEventListener('yt-navigate-finish', (event) => {
-          forceTheater();
           if (event.detail) {
             onPlayerData(event.detail);
-            addChannelLinks();
           }
-          addPublishLinks();
         });
       },
     };
