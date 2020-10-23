@@ -4,11 +4,10 @@
 
   let LOGGER;
   let stopNextAutoplay = true;
-  let lastReferrer = null;
   let videoScroller;
 
   const scrollerOptions = {
-    color: '#f12b24',
+    color: '#f00',
     getVolumeWheelElement(player) {
       return player.parentElement;
     },
@@ -93,26 +92,12 @@
     },
   };
 
-  function shouldStopAutoplay(eventDetail) {
-    if (lastReferrer) {
-      const list = _.getKey(eventDetail, ['endpoint', 'watchEndpoint', 'playlistId']);
-      const vid = _.getKey(eventDetail, ['endpoint', 'watchEndpoint', 'videoId']);
-      if (list && lastReferrer.includes(list)) {
-        return false;
-      }
-      if (vid && lastReferrer.includes(vid)) {
-        return !list;
-      }
-    }
+  function shouldStopAutoplay(event) {
+    // TODO: dont stop if same playlist or same video (youtube mix link)
     return true;
   }
 
   function stopAutoplay(player) {
-    const TIMESTAMP_REGEX = /[?#&](?:star)?t(?:ime(?:_continue)?)?=/i;
-    // const hasTimeStamp = window.location.href.match(TIMESTAMP_REGEX);
-    // NOTE: Always pause video for now; stopping seems to break playback.
-    const hasTimeStamp = true;
-    const isGoogleApiEmbed = window.location.hostname === 'youtube.googleapis.com';
     const state = player.getPlayerState();
     LOGGER.log('player found; state =', state);
     // on first load sometimes it says it's paused, but it's not so do it again
@@ -121,11 +106,7 @@
       if (stopNextAutoplay) {
         LOGGER.log('stopping player');
         stopNextAutoplay = false;
-        if (hasTimeStamp || isGoogleApiEmbed) {
-          player.pauseVideo();
-        } else {
-          player.stopVideo();
-        }
+        player.pauseVideo();
       }
     } else {
       const onPlayerStateChange = (newState) => {
@@ -135,11 +116,7 @@
           if (stopNextAutoplay) {
             LOGGER.log('stopping player');
             stopNextAutoplay = false;
-            if (hasTimeStamp || isGoogleApiEmbed) {
-              player.pauseVideo();
-            } else {
-              player.stopVideo();
-            }
+            player.pauseVideo();
           }
         }
       };
@@ -147,19 +124,19 @@
     }
   }
 
-  async function onPlayerData(eventDetail) {
-    stopNextAutoplay = shouldStopAutoplay(eventDetail);
-    const playerData = eventDetail.response.player;
-    const player = await _.waitFor(`#${playerData.attrs.id}`);
-    stopAutoplay(player);
-
-    if (videoScroller && videoScroller.player !== player) {
-      videoScroller.destroy();
-      videoScroller = null;
-    }
-
-    if (videoScroller == null) {
-      videoScroller = new VideoScroller(player, scrollerOptions);
+  async function onNavigateFinish(event) {
+    const page = event?.detail?.response?.page;
+    if (page === 'watch') {
+      stopNextAutoplay = shouldStopAutoplay(event);
+      const player = await _.waitFor('#movie_player');
+      stopAutoplay(player);
+      if (videoScroller && videoScroller.player !== player) {
+        videoScroller.destroy();
+        videoScroller = null;
+      }
+      if (!videoScroller) {
+        videoScroller = new VideoScroller(player, scrollerOptions);
+      }
     }
   }
 
@@ -182,19 +159,8 @@
           }
         `);
 
-        document.addEventListener('yt-navigate', () => {
-          stopNextAutoplay = true;
-          lastReferrer = window.location.href;
-        });
-
-        document.addEventListener('yt-navigate-start', () => {
-          stopNextAutoplay = true;
-        });
-
         document.addEventListener('yt-navigate-finish', (event) => {
-          if (event.detail) {
-            onPlayerData(event.detail);
-          }
+          onNavigateFinish(event);
         });
       },
     };
