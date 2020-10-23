@@ -121,6 +121,10 @@
         }
       };
       player.addEventListener('onStateChange', onPlayerStateChange);
+      document.addEventListener('click', () => {
+        LOGGER.log('user clicked; removing state change listener');
+        player.removeEventListener('onStateChange', onPlayerStateChange);
+      });
     }
   }
 
@@ -139,7 +143,7 @@
     }
   }
 
-  if (context.vpsSite == null && window.location.host.match(/\.youtube\.com$/)) {
+  if (context.vpsSite == null && (window.location.host.match(/\.youtube\.com$/) || window.location.host.match(/youtube\.googleapis\.com$/))) {
     context.vpsSite = {
       init(logger) {
         LOGGER = logger.push('youtube');
