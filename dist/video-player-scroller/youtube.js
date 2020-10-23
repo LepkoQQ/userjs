@@ -124,11 +124,10 @@
     }
   }
 
-  async function onNavigateFinish(event) {
-    const page = event?.detail?.response?.page;
-    if (page === 'watch') {
+  async function onNavigateFinish(page, event) {
+    if (['watch', 'embed'].includes(page)) {
       stopNextAutoplay = shouldStopAutoplay(event);
-      const player = await _.waitFor('#movie_player');
+      const player = await _.waitFor('.html5-video-player');
       stopAutoplay(player);
       if (videoScroller && videoScroller.player !== player) {
         videoScroller.destroy();
@@ -159,8 +158,13 @@
           }
         `);
 
+        if (window.location.pathname.startsWith('/embed/')) {
+          onNavigateFinish('embed', null);
+          return;
+        }
+
         document.addEventListener('yt-navigate-finish', (event) => {
-          onNavigateFinish(event);
+          onNavigateFinish(event?.detail?.response?.page, event);
         });
       },
     };
