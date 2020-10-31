@@ -129,7 +129,7 @@
   }
 
   async function onNavigateFinish(page, event) {
-    if (['watch', 'embed'].includes(page)) {
+    if (['watch', 'embed', 'channel'].includes(page)) {
       stopNextAutoplay = shouldStopAutoplay(event);
       const player = await _.waitFor('.html5-video-player');
       stopAutoplay(player);
@@ -171,7 +171,13 @@
         }
 
         document.addEventListener('yt-navigate-finish', (event) => {
-          onNavigateFinish(event?.detail?.response?.page, event);
+          const url = event?.detail?.response?.url;
+          let page = event?.detail?.response?.page;
+          // Fix page type on first load
+          if (page === 'browse' && url && (url.startsWith('/c/') || url.startsWith('/channel/') || url.startsWith('/user/'))) {
+            page = 'channel';
+          }
+          onNavigateFinish(page, event);
         });
       },
     };
