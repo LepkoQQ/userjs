@@ -157,8 +157,11 @@
           .ytp-autohide .ext_progress_bar {
             opacity: 1;
           }
-          span.__ext__pubtime {
-            cursor: help;
+          .ytp-pause-overlay {
+            display: none;
+          }
+          .html5-endscreen.ytp-player-content.videowall-endscreen {
+            display: none;
           }
         `);
 
