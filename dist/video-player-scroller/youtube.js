@@ -37,7 +37,7 @@
     },
     addSpeedTextElement(container) {
       const element = _.create('button.ytp-button', {
-        style: 'position:relative',
+        style: 'position:relative;display:inline-flex',
         innerHTML: '<div style="position:absolute;top:0;width:100%;text-align:center">1x</div>',
       });
       container.insertBefore(element, container.firstChild);
