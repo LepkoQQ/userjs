@@ -163,6 +163,11 @@
           .html5-endscreen.ytp-player-content.videowall-endscreen {
             display: none;
           }
+
+          #video-title {
+            display: block !important;
+            max-height: unset !important;
+          }
         `);
 
         if (window.location.pathname.startsWith('/embed/')) {
