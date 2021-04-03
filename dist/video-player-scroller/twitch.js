@@ -317,8 +317,7 @@
           .ext_progress_bar .ext_progress_bar_fill_buffer {
             background-color: rgba(255, 255, 255, 0.85);
           }
-          .video-player__overlay .tw-transition--exit-active + .ext_progress_bar,
-          .video-player__overlay .tw-transition--exit-done + .ext_progress_bar {
+          .video-player__inactive .ext_progress_bar {
             opacity: 1;
           }
           body .pl-stats-list {
