@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://poglej.ga/
-// @version     4.2.0
+// @version     4.2.1
 // @run-at      document-start
 // @include     *
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/b3c5137cbc7f852f6f43ccfcbeb81f9fc12cfe4c/dist/utils/utils.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/b3c5137cbc7f852f6f43ccfcbeb81f9fc12cfe4c/dist/utils/reacthook.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/b3c5137cbc7f852f6f43ccfcbeb81f9fc12cfe4c/dist/video-player-scroller/_videoscroller.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/b3c5137cbc7f852f6f43ccfcbeb81f9fc12cfe4c/dist/video-player-scroller/vimeo.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/b3c5137cbc7f852f6f43ccfcbeb81f9fc12cfe4c/dist/video-player-scroller/twitch.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/b3c5137cbc7f852f6f43ccfcbeb81f9fc12cfe4c/dist/video-player-scroller/youtube.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/75c0b00ebead428b78851b98255b400c4bfcc705/dist/utils/utils.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/75c0b00ebead428b78851b98255b400c4bfcc705/dist/utils/reacthook.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/75c0b00ebead428b78851b98255b400c4bfcc705/dist/video-player-scroller/_videoscroller.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/75c0b00ebead428b78851b98255b400c4bfcc705/dist/video-player-scroller/vimeo.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/75c0b00ebead428b78851b98255b400c4bfcc705/dist/video-player-scroller/twitch.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/75c0b00ebead428b78851b98255b400c4bfcc705/dist/video-player-scroller/youtube.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
