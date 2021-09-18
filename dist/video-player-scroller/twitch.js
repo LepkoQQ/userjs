@@ -212,29 +212,39 @@
         });
       });
 
-    // hook
-    //   .findComponent('videoPreviewCard', (c) => c.generateSearchString)
-    //   .then((wrappedComponent) => {
-    //     LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
+    hook
+      .findComponent('videoPreviewCard', (c) => c.generateSearchString)
+      .then((wrappedComponent) => {
+        LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
-    //     // Fix 100% watched vods not being marked as watched
-    //     // eslint-disable-next-line no-underscore-dangle
-    //     const proto = wrappedComponent._component.prototype;
-    //     const origRender = proto.render;
-    //     proto.render = function fixedWatchPercentageRender() {
-    //       if (this.props.video && this.props.video.self && this.props.video.self.viewingHistory) {
-    //         if (this.props.video.self.viewingHistory.position === 0) {
-    //           this.props.video.self.viewingHistory.position = this.props.video.lengthSeconds;
-    //         }
-    //       }
-    //       return origRender.call(this);
-    //     };
+        // Fix 100% watched vods not being marked as watched
+        // eslint-disable-next-line no-underscore-dangle
+        const proto = wrappedComponent._component.prototype;
+        const origRender = proto.render;
+        proto.render = function fixedWatchPercentageRender() {
+          if (this.props.video && this.props.video.self && this.props.video.self.viewingHistory) {
+            if (this.props.video.self.viewingHistory.position === 0) {
+              // this.props.video.self.viewingHistory.position = this.props.video.lengthSeconds;
+              this.props.video = {
+                ...this.props.video,
+                self: {
+                  ...this.props.video.self,
+                  viewingHistory: {
+                    ...this.props.video.self.viewingHistory,
+                    position: this.props.video.lengthSeconds,
+                  }
+                },
+              };
+            }
+          }
+          return origRender.call(this);
+        };
 
-    //     // eslint-disable-next-line no-underscore-dangle
-    //     wrappedComponent._instances.forEach((instance) => {
-    //       instance.forceUpdate();
-    //     });
-    //   });
+        // eslint-disable-next-line no-underscore-dangle
+        wrappedComponent._instances.forEach((instance) => {
+          instance.forceUpdate();
+        });
+      });
   }
 
   if (context.vpsSite == null && window.location.host.match(/\.twitch\.tv$/)) {
@@ -270,7 +280,7 @@
           .video-player__inactive .ext_progress_bar {
             opacity: 1;
           }
-          body .preview-card-overlay .tw-progress-bar--sm {
+          body .tw-media-card-image__cover .tw-progress-bar {
             height: 4rem;
           }
         `);
