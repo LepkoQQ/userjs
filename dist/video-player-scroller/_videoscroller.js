@@ -349,18 +349,19 @@ const VideoScroller = (function createVideoScroller() {
     }
 
     showVideoOverlayElements() {
+      const container = this.progressContainerElement || this.player;
       const rightOffset = this.options.getRightOffset(this.player);
       const bottomOffset = this.options.getBottomOffset(this.player);
-      const volumeBar = _.get('.ext_volume_bar', this.player)
-        || this.player.appendChild(_.create('.ext_volume_bar'));
-      const volumeBarFill = _.get('.ext_volume_bar_fill', this.player)
+      const volumeBar = _.get('.ext_volume_bar', container)
+        || container.appendChild(_.create('.ext_volume_bar'));
+      const volumeBarFill = _.get('.ext_volume_bar_fill', container)
         || volumeBar.appendChild(
           _.create('.ext_volume_bar_fill', {
             style: `background:${this.options.color}`,
           })
         );
-      const playbackRateText = _.get('.ext_playback_rate_text', this.player)
-        || this.player.appendChild(_.create('.ext_playback_rate_text'));
+      const playbackRateText = _.get('.ext_playback_rate_text', container)
+        || container.appendChild(_.create('.ext_playback_rate_text'));
 
       if (this.player.hasAttribute('data-ext_overlay_timeout')) {
         const oldTid = this.player.getAttribute('data-ext_overlay_timeout');
