@@ -176,18 +176,31 @@
               );
               scrollers.set(this, vs);
               // prevent auto playing next video
-              const x = '.player-overlay-background button.tw-button-icon .tw-button-icon__icon';
+              const x = '.autoplay-vod__content-container button';
+              const x2 = '.other-vods__container button';
+
+              // prevent autoplay when video not the main thing (background of banner, or vod autoplay on video list pages)
+              const y = '.channel-root__player .home';
+
+              if (document.querySelector(y)) {
+                this.props.mediaPlayerInstance.pause();
+              }
+
               observers.set(
                 this,
                 _.observeAddedElements(document, (element) => {
-                  if (element.matches(x)) {
-                    // console.log(element);
+                  if (element.matches(x) || element.matches(x2)) {
                     element.click();
                   } else {
-                    const elem = element.querySelector(x);
+                    const elem = element.querySelector(x) || element.querySelector(x2);
                     if (elem) {
-                      // console.log(elem);
                       elem.click();
+                    }
+                  }
+
+                  if (document.querySelector(y)) {
+                    if(!this.props.mediaPlayerInstance.isPaused()) {
+                      this.props.mediaPlayerInstance.pause();
                     }
                   }
                 })
