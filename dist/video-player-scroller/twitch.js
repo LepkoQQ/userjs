@@ -126,104 +126,36 @@
     };
   }
 
-  function ajax(url) {
-    return _.ajax(url, {
-      attrs: {
-        headers: {
-          'Client-ID': 'a936j1ucnma1ucntkp2qf8vepul2tnn',
-        },
-      },
-      logger: LOGGER,
-    });
-  }
-
-  function formatUptime(seconds) {
-    const min = Math.floor(Math.floor(seconds / 60) % 60);
-    const hrs = Math.floor(Math.floor(seconds / 60) / 60);
-    const hoursString = hrs < 1 ? '' : `${hrs} hour${hrs < 2 ? '' : 's'} `;
-    const minutesString = `${min} minutes`;
-    return `Uptime: ${hoursString}${minutesString}`;
-  }
-
   async function twitchHook() {
     const hook = await ReactHook.create('#root');
     LOGGER.log('created react hook', hook);
 
-    hook
-      .findComponent(
-        'videoInfoBar',
-        (c) => c.props && c.props.video && Object.keys(c.props).length === 1
-      )
-      .then((wrappedComponent) => {
-        LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
+    // hook
+    //   .findComponent(
+    //     'videoInfoBar',
+    //     (c) => c.props && c.props.video && Object.keys(c.props).length === 1
+    //   )
+    //   .then((wrappedComponent) => {
+    //     LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
-        wrappedComponent.wrap({
-          componentDidUpdate() {
-            // add video publish datetime on vods
-            if (this.props.video && this.props.video.publishedAt) {
-              const elem = hook.getDOMElement(this);
-              const titleElem = _.get(
-                '.tw-card .tw-card-body p[data-test-selector="date-views"]',
-                elem
-              );
-              if (titleElem) {
-                const addedElem = _.getOrCreate('span.__ext__vod_date', titleElem);
-                const time = Date.parse(this.props.video.publishedAt);
-                addedElem.textContent = _.formatDateTime(time);
-              }
-            }
-          },
-        });
-      });
-
-    hook
-      .findComponent(
-        'channel-info-bar',
-        (c) => c.renderChannelMetadata && c.renderChannelViewersCount
-      )
-      .then((wrappedComponent) => {
-        LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
-
-        const uptimes = new WeakMap();
-        wrappedComponent.wrap({
-          componentDidUpdate() {
-            // add uptime under live stream
-            if (this.props.channelLogin && !this.props.hosting) {
-              const elem = hook.getDOMElement(this);
-              const actionContainer = _.get('.side-nav-channel-info__info-wrapper', elem);
-              if (actionContainer) {
-                const addedElem = _.getOrCreate(
-                  'span.__ext__uptime.tw-align-center.tw-block.tw-mg-1',
-                  actionContainer
-                );
-                if (uptimes.has(this) && uptimes.get(this).startedAt) {
-                  const uptime = (Date.now() - uptimes.get(this).startedAt) / 1000;
-                  addedElem.textContent = formatUptime(uptime);
-                } else if (!uptimes.has(this) || !uptimes.get(this).loading) {
-                  uptimes.set(this, { loading: true });
-                  ajax(`https://api.twitch.tv/helix/streams?user_login=${this.props.channelLogin}`)
-                    .send()
-                    .then((response) => {
-                      if (uptimes.has(this)) {
-                        uptimes.set(this, { loading: false });
-                        const jsonR = JSON.parse(response);
-                        if (jsonR.data && jsonR.data.length) {
-                          const startedAt = Date.parse(jsonR.data[0].started_at);
-                          uptimes.set(this, { startedAt });
-                          const uptime = (Date.now() - startedAt) / 1000;
-                          addedElem.textContent = formatUptime(uptime);
-                        }
-                      }
-                    });
-                }
-              }
-            }
-          },
-          componentWillUnmount() {
-            uptimes.delete(this);
-          },
-        });
-      });
+    //     wrappedComponent.wrap({
+    //       componentDidUpdate() {
+    //         // add video publish datetime on vods
+    //         if (this.props.video && this.props.video.publishedAt) {
+    //           const elem = hook.getDOMElement(this);
+    //           const titleElem = _.get(
+    //             '.tw-card .tw-card-body p[data-test-selector="date-views"]',
+    //             elem
+    //           );
+    //           if (titleElem) {
+    //             const addedElem = _.getOrCreate('span.__ext__vod_date', titleElem);
+    //             const time = Date.parse(this.props.video.publishedAt);
+    //             addedElem.textContent = _.formatDateTime(time);
+    //           }
+    //         }
+    //       },
+    //     });
+    //   });
 
     hook
       .findComponent(
@@ -280,29 +212,29 @@
         });
       });
 
-    hook
-      .findComponent('videoPreviewCard', (c) => c.generateSearchString)
-      .then((wrappedComponent) => {
-        LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
+    // hook
+    //   .findComponent('videoPreviewCard', (c) => c.generateSearchString)
+    //   .then((wrappedComponent) => {
+    //     LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
-        // Fix 100% watched vods not being marked as watched
-        // eslint-disable-next-line no-underscore-dangle
-        const proto = wrappedComponent._component.prototype;
-        const origRender = proto.render;
-        proto.render = function fixedWatchPercentageRender() {
-          if (this.props.video && this.props.video.self && this.props.video.self.viewingHistory) {
-            if (this.props.video.self.viewingHistory.position === 0) {
-              this.props.video.self.viewingHistory.position = this.props.video.lengthSeconds;
-            }
-          }
-          return origRender.call(this);
-        };
+    //     // Fix 100% watched vods not being marked as watched
+    //     // eslint-disable-next-line no-underscore-dangle
+    //     const proto = wrappedComponent._component.prototype;
+    //     const origRender = proto.render;
+    //     proto.render = function fixedWatchPercentageRender() {
+    //       if (this.props.video && this.props.video.self && this.props.video.self.viewingHistory) {
+    //         if (this.props.video.self.viewingHistory.position === 0) {
+    //           this.props.video.self.viewingHistory.position = this.props.video.lengthSeconds;
+    //         }
+    //       }
+    //       return origRender.call(this);
+    //     };
 
-        // eslint-disable-next-line no-underscore-dangle
-        wrappedComponent._instances.forEach((instance) => {
-          instance.forceUpdate();
-        });
-      });
+    //     // eslint-disable-next-line no-underscore-dangle
+    //     wrappedComponent._instances.forEach((instance) => {
+    //       instance.forceUpdate();
+    //     });
+    //   });
   }
 
   if (context.vpsSite == null && window.location.host.match(/\.twitch\.tv$/)) {
@@ -338,29 +270,8 @@
           .video-player__inactive .ext_progress_bar {
             opacity: 1;
           }
-          body .pl-stats-list {
-            top: 0;
-            left: 0;
-            padding: 0;
-            line-height: 11px;
-            width: 175px;
-          }
-          body .pl-stats-list .pl-stat {
-            padding: 0;
-            font-size: 10px;
-          }
-          body .pl-stats-list .pl-stat div {
-            padding-left: 0;
-          }
           body .preview-card-overlay .tw-progress-bar--sm {
             height: 4rem;
-          }
-          .__ext__vod_date {
-            font-size: 1.2rem;
-          }
-          .__ext__vod_date::before {
-            content: '·';
-            margin: 0 5px;
           }
         `);
 
