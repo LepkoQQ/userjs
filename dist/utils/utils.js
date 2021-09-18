@@ -141,8 +141,9 @@ const _ = (function utils() {
       return str.split(find).join(replace);
     },
     waitForSelector(selector, options = {}) {
-      const el = options.parent ? _.get(selector, options.parent) : _.get(selector);
-      if (el) {
+      const _get = options.all ? _.all : _.get;
+      const el = options.parent ? _get(selector, options.parent) : _get(selector);
+      if (options.all ? el.length : el) {
         return Promise.resolve(el);
       }
       const timeout = typeof options.timeout === 'number' ? options.timeout : 30000;
@@ -161,8 +162,8 @@ const _ = (function utils() {
       }, timeout);
       observer = new MutationObserver(() => {
         if (!done) {
-          const elem = options.parent ? _.get(selector, options.parent) : _.get(selector);
-          if (elem) {
+          const elem = options.parent ? _get(selector, options.parent) : _get(selector);
+          if (options.all ? elem.length : elem) {
             done = true;
             clearTimeout(timeoutTimer);
             observer.disconnect();

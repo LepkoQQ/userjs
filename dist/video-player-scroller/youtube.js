@@ -4,7 +4,7 @@
 
   let LOGGER;
   let stopNextAutoplay = true;
-  let videoScroller;
+  const scrollers = new WeakMap();
 
   const scrollerOptions = {
     color: '#f00',
@@ -92,10 +92,10 @@
     },
   };
 
-  function shouldStopAutoplay(event) {
-    // TODO: dont stop if same playlist or same video (youtube mix link)
-    return true;
-  }
+  // function shouldStopAutoplay(event) {
+  //   // TODO: dont stop if same playlist or same video (youtube mix link)
+  //   return true;
+  // }
 
   function stopAutoplay(player) {
     const state = player.getPlayerState();
@@ -105,7 +105,7 @@
     if ([1, 2].includes(state)) {
       if (stopNextAutoplay) {
         LOGGER.log('stopping player');
-        stopNextAutoplay = false;
+        // stopNextAutoplay = false;
         player.pauseVideo();
       }
     } else {
@@ -115,31 +115,39 @@
           player.removeEventListener('onStateChange', onPlayerStateChange);
           if (stopNextAutoplay) {
             LOGGER.log('stopping player');
-            stopNextAutoplay = false;
+            // stopNextAutoplay = false;
             player.pauseVideo();
           }
         }
       };
       player.addEventListener('onStateChange', onPlayerStateChange);
-      document.addEventListener('click', () => {
-        LOGGER.log('user clicked; removing state change listener');
-        player.removeEventListener('onStateChange', onPlayerStateChange);
-      });
+      // const onClick = () => {
+      //   LOGGER.log('user clicked; removing state change listener');
+      //   player.removeEventListener('onStateChange', onPlayerStateChange);
+      //   document.removeEventListener('click', onClick);
+      // };
+      // document.addEventListener('click', onClick);
     }
   }
 
+  const playerSelector = '#player:not(.skeleton) .html5-video-player, #container .html5-video-player';
+  _.observeAddedElements(document, (element) => {
+    if (element.matches(playerSelector)) {
+      if (!scrollers.has(element)) {
+        // stopNextAutoplay = true;
+        stopAutoplay(element);
+        const vs = new VideoScroller(element, scrollerOptions);
+        scrollers.set(element, vs);
+      }
+    }
+  });
+
   async function onNavigateFinish(page, event) {
     if (['watch', 'embed', 'channel'].includes(page)) {
-      stopNextAutoplay = shouldStopAutoplay(event);
-      const player = await _.waitFor('#player:not(.skeleton) .html5-video-player, #container .html5-video-player');
-      stopAutoplay(player);
-      if (videoScroller && videoScroller.player !== player) {
-        videoScroller.destroy();
-        videoScroller = null;
-      }
-      if (!videoScroller) {
-        videoScroller = new VideoScroller(player, scrollerOptions);
-      }
+      // stopNextAutoplay = shouldStopAutoplay(event);
+      _.all(playerSelector).forEach((player) => {
+        stopAutoplay(player);
+      });
     }
   }
 
