@@ -10,11 +10,11 @@
       color: 'rgb(169, 112, 255)',
       // eslint-disable-next-line no-unused-vars
       getRightOffset(player) {
-        return 10;
+        return 20;
       },
       // eslint-disable-next-line no-unused-vars
       getBottomOffset(player) {
-        return 88;
+        return 90;
       },
       // eslint-disable-next-line no-unused-vars
       getVolume(player) {
@@ -35,8 +35,7 @@
       },
       addSpeedTextElement(container) {
         const div = _.create('div');
-        const element = _.create('span.tw-pill tw-semibold tw-upcase', {
-          style: 'margin-right:0.5rem',
+        const element = _.create('span.__ext__speed_element_pill', {
           textContent: '1x',
         });
         div.appendChild(element);
@@ -61,6 +60,9 @@
           return speed;
         }
         return 1;
+      },
+      getProgressContainerElement(player) {
+        return _.get('.video-player__overlay', player);
       },
       getVideoDuration() {
         if (playerApi) {
@@ -310,6 +312,22 @@
         LOGGER.log('started');
 
         _.addCSS(`
+          .__ext__speed_element_pill {
+            color: #000;
+            background-color: hsl(264deg 100% 80% / 75%);
+            display: inline-block;
+            position: relative;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            bottom: 0.15em;
+            border-radius: 1000px;
+            padding: 0.3rem 0.8em;
+            font-size: 75%;
+            text-transform: uppercase !important;
+            font-weight: 600 !important;
+            margin-right: 0.5em;
+          }
           .ext_progress_bar {
             opacity: 0;
             background-color: hsla(0,0%,100%,.35);
