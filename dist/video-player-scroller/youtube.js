@@ -131,7 +131,7 @@
   async function onNavigateFinish(page, event) {
     if (['watch', 'embed', 'channel'].includes(page)) {
       stopNextAutoplay = shouldStopAutoplay(event);
-      const player = await _.waitFor('.html5-video-player');
+      const player = await _.waitFor('#player:not(.skeleton) .html5-video-player, #container .html5-video-player');
       stopAutoplay(player);
       if (videoScroller && videoScroller.player !== player) {
         videoScroller.destroy();
