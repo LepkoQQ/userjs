@@ -3,8 +3,19 @@
   'use strict';
 
   let LOGGER;
-  let stopNextAutoplay = true;
   const scrollers = new WeakMap();
+  const YT_PlayerState = {
+    UNSTARTED: -1,
+    ENDED: 0,
+    PLAYING: 1,
+    PAUSED: 2,
+    BUFFERING: 3,
+    CUED: 5,
+  };
+  const YT_PlayerStateString = (state) => {
+    const [key] = Object.entries(YT_PlayerState).find(([key, value]) => value === state);
+    return key || `UNKNOWN (${state})`;
+  };
 
   const scrollerOptions = {
     color: '#f00',
@@ -67,12 +78,10 @@
       return player.getCurrentTime();
     },
     isPaused(player) {
-      // 1 = playing, 3 = buffering
-      return ![1, 3].includes(player.getPlayerState());
+      return ![YT_PlayerState.PLAYING, YT_PlayerState.BUFFERING].includes(player.getPlayerState());
     },
     playOrPause(player) {
-      // 1 = playing, 3 = buffering
-      if ([1, 3].includes(player.getPlayerState())) {
+      if ([YT_PlayerState.PLAYING, YT_PlayerState.BUFFERING].includes(player.getPlayerState())) {
         player.pauseVideo();
       } else {
         player.playVideo();
@@ -92,59 +101,33 @@
     },
   };
 
-  // function shouldStopAutoplay(event) {
-  //   // TODO: dont stop if same playlist or same video (youtube mix link)
-  //   return true;
-  // }
-
   function stopAutoplay(player) {
+    // On first load it sometimes says it's PLAYING, when its actually BUFFERING.
+    // If you call pauseVideo at that time, it will change state to PAUSE, however when it stops buffering,
+    // it will change to PLAYING again, so we need pause in onStateChange when new state is PLAYING.
     const state = player.getPlayerState();
-    LOGGER.log('player found; state =', state);
-    // on first load sometimes it says it's paused, but it's not so do it again
-    // 1 = playing, 2 = paused
-    if ([1, 2].includes(state)) {
-      if (stopNextAutoplay) {
-        LOGGER.log('stopping player');
-        // stopNextAutoplay = false;
+    LOGGER.log('stop autoplay called; state =', YT_PlayerStateString(state));
+    const onStateChange = (newState) => {
+      console.log('state changed; state =', YT_PlayerStateString(newState));
+      if (newState === YT_PlayerState.PLAYING) {
+        console.log('trying to pause');
         player.pauseVideo();
+        player.removeEventListener('onStateChange', onStateChange);
       }
-    } else {
-      const onPlayerStateChange = (newState) => {
-        LOGGER.log('state changed; state =', newState);
-        if (newState === 1) {
-          player.removeEventListener('onStateChange', onPlayerStateChange);
-          if (stopNextAutoplay) {
-            LOGGER.log('stopping player');
-            // stopNextAutoplay = false;
-            player.pauseVideo();
-          }
-        }
-      };
-      player.addEventListener('onStateChange', onPlayerStateChange);
-      // const onClick = () => {
-      //   LOGGER.log('user clicked; removing state change listener');
-      //   player.removeEventListener('onStateChange', onPlayerStateChange);
-      //   document.removeEventListener('click', onClick);
-      // };
-      // document.addEventListener('click', onClick);
-    }
-  }
+    };
+    player.addEventListener('onStateChange', onStateChange);
+    player.pauseVideo();
 
-  const playerSelector = '#player:not(.skeleton) .html5-video-player, #container .html5-video-player';
-  _.observeAddedElements(document, (element) => {
-    if (element.matches(playerSelector)) {
-      if (!scrollers.has(element)) {
-        // stopNextAutoplay = true;
-        stopAutoplay(element);
-        const vs = new VideoScroller(element, scrollerOptions);
-        scrollers.set(element, vs);
-      }
-    }
-  });
+    // const onClick = () => {
+    //   LOGGER.log('user clicked; removing state change listener');
+    //   player.removeEventListener('onStateChange', onPlayerStateChange);
+    //   document.removeEventListener('click', onClick);
+    // };
+    // document.addEventListener('click', onClick);
+  }
 
   async function onNavigateFinish(page, event) {
     if (['watch', 'embed', 'channel'].includes(page)) {
-      // stopNextAutoplay = shouldStopAutoplay(event);
       _.all(playerSelector).forEach((player) => {
         stopAutoplay(player);
       });
@@ -171,12 +154,22 @@
           .html5-endscreen.ytp-player-content.videowall-endscreen {
             display: none;
           }
-
           #video-title {
             display: block !important;
             max-height: unset !important;
           }
         `);
+
+        const playerSelector = '#player:not(.skeleton) .html5-video-player, #container .html5-video-player';
+        _.observeAddedElements(document, (element) => {
+          if (element.matches(playerSelector)) {
+            if (!scrollers.has(element)) {
+              const vs = new VideoScroller(element, scrollerOptions);
+              scrollers.set(element, vs);
+              stopAutoplay(element);
+            }
+          }
+        });
 
         if (window.location.pathname.startsWith('/embed/')) {
           onNavigateFinish('embed', null);
