@@ -158,7 +158,7 @@ const _ = (function utils() {
       const timeoutTimer = setTimeout(() => {
         done = true;
         observer.disconnect();
-        reject(new Error(`waitForFunction failed: timeout ${timeout}ms exceeded`));
+        reject(new Error(`waitForSelector failed: timeout ${timeout}ms exceeded; ${selector}`));
       }, timeout);
       observer = new MutationObserver(() => {
         if (!done) {
@@ -189,7 +189,7 @@ const _ = (function utils() {
       let done = false;
       const timeoutTimer = setTimeout(() => {
         done = true;
-        reject(new Error(`waitForFunction failed: timeout ${timeout}ms exceeded`));
+        reject(new Error(`waitForFunction failed: timeout ${timeout}ms exceeded; ${func}`));
       }, timeout);
       async function retry() {
         if (!done) {

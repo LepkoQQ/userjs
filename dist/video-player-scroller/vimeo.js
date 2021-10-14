@@ -56,7 +56,7 @@
               return player;
             }
             return false;
-          }, -1);
+          });
         }
         if (_.get('video', player)) {
           return player;
@@ -68,7 +68,7 @@
     });
   }
 
-  if (context.vpsSite == null && window.location.host.match(/(?:\.|^)vimeo\.com$/)) {
+  if (context.vpsSite == null && window.location.host.match(/(?:\.|^)vimeo\.com$/) && !window.location.pathname.endsWith('proxy.html')) {
     context.vpsSite = {
       init(logger) {
         LOGGER = logger.push('vimeo');
@@ -98,6 +98,13 @@
                 debouncedOnRouteChange();
               }
             });
+          });
+
+          _.waitFor('#__next').then(async () => {
+            LOGGER.log('nextjs wait');
+            await _.waitFor(3000);
+            LOGGER.log('nextjs');
+            onRouteChange();
           });
         }
       },
