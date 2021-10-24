@@ -185,6 +185,12 @@ const VideoScroller = (function createVideoScroller() {
         this.speedTextElement = this.options.addSpeedTextElement(speedContainerElement);
         this.onScrollSpeed = this.onScrollSpeed.bind(this);
         this.speedTextElement.addEventListener('wheel', this.onScrollSpeed);
+        //
+        this.zoomTextElement = this.options.addSpeedTextElement(speedContainerElement);
+        this.onScrollZoom = this.onScrollZoom.bind(this);
+        this.zoomTextElement.style.outline = '1px dashed gold !important';
+        this.zoomTextElement.textContent = '1';
+        this.zoomTextElement.addEventListener('wheel', this.onScrollZoom);
       }
 
       // show player progress bar when controls are hidden
@@ -223,6 +229,12 @@ const VideoScroller = (function createVideoScroller() {
         this.speedTextElement.removeEventListener('wheel', this.onScrollSpeed);
         this.speedTextElement.remove();
         this.speedTextElement = null;
+      }
+
+      if (this.zoomTextElement) {
+        this.zoomTextElement.removeEventListener('wheel', this.onScrollZoom);
+        this.zoomTextElement.remove();
+        this.zoomTextElement = null;
       }
 
       this.progressContainerElement = null;
@@ -328,11 +340,31 @@ const VideoScroller = (function createVideoScroller() {
       this.changeSpeed(event.deltaY < 0);
     }
 
+    onScrollZoom(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.changeZoom(event.deltaY < 0);
+    }
+
     changeSpeed(increase) {
       if (this.player && this.speedTextElement) {
         const newSpeed = this.options.changeSpeed(this.player, increase);
         this.speedTextElement.textContent = `${newSpeed}x`;
         setTimeout(() => this.showVideoOverlayElements(), 0);
+      }
+    }
+
+    changeZoom(increase) {
+      if (this.player && this.zoomTextElement) {
+        const step = 0.05;
+        const video = _.get('video', this.player);
+        const zoom = this.currentZoom || 1;
+        const newZoom = increase ? zoom + step : zoom - step;
+        if (newZoom > 0) {
+          video.style.transform = `scale(${newZoom})`;
+          this.currentZoom = newZoom;
+        }
+        this.zoomTextElement.textContent = `${newZoom.toFixed(2)}`;
       }
     }
 
