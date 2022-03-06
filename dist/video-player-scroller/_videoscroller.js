@@ -347,9 +347,11 @@ const VideoScroller = (function createVideoScroller() {
     }
 
     changeSpeed(increase) {
-      if (this.player && this.speedTextElement) {
+      if (this.player) {
         const newSpeed = this.options.changeSpeed(this.player, increase);
-        this.speedTextElement.textContent = `${newSpeed}x`;
+        if (this.speedTextElement) {
+          this.speedTextElement.textContent = `${newSpeed}x`;
+        }
         setTimeout(() => this.showVideoOverlayElements(), 0);
       }
     }
