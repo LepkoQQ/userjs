@@ -284,10 +284,14 @@ const VideoScroller = (function createVideoScroller() {
         }
         case 'Period':
         case 'Comma': {
-          if (event.shiftKey) {
+          if (event.shiftKey && !event.ctrlKey && !event.altKey) {
             event.preventDefault();
             event.stopPropagation();
             this.changeSpeed(event.code === 'Period');
+          } else if (!event.shiftKey && event.ctrlKey && !event.altKey) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.changeZoom(event.code === 'Period');
           }
           break;
         }
@@ -357,7 +361,7 @@ const VideoScroller = (function createVideoScroller() {
     }
 
     changeZoom(increase) {
-      if (this.player && this.zoomTextElement) {
+      if (this.player) {
         const step = 0.05;
         const video = _.get('video', this.player);
         const zoom = this.currentZoom || 1;
@@ -366,7 +370,9 @@ const VideoScroller = (function createVideoScroller() {
           video.style.transform = `scale(${newZoom})`;
           this.currentZoom = newZoom;
         }
-        this.zoomTextElement.textContent = `${newZoom.toFixed(2)}`;
+        if (this.zoomTextElement) {
+          this.zoomTextElement.textContent = `${newZoom.toFixed(2)}`;
+        }
       }
     }
 
