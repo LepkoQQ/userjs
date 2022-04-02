@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://poglej.ga/
-// @version     4.2.5
+// @version     4.2.6
 // @run-at      document-start
 // @include     *
 // @require     https://raw.githubusercontent.com/LepkoQQ/userjs/3d73635b38eacf8bc38c4dec905d7cd8197a409b/dist/utils/utils.js
