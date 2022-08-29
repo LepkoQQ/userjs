@@ -31,7 +31,7 @@
         return newVolume * 100;
       },
       getSpeedContainerElement(player) {
-        return _.get('.player-controls__right-control-group', player);
+        return _.get('.video-ref .player-controls__right-control-group', player);
       },
       addSpeedTextElement(container) {
         const div = _.create('div');
