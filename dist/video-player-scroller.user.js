@@ -1,17 +1,17 @@
 // ==UserScript==
 // @name        Video Player Scroller
 // @namespace   http://poglej.ga/
-// @version     4.2.8
+// @version     4.3.0
 // @run-at      document-start
 // @include     *
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/f2de452c1f23c296c2378fd82d8dbf7f33146786/dist/utils/utils.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/f2de452c1f23c296c2378fd82d8dbf7f33146786/dist/utils/reacthook.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/f2de452c1f23c296c2378fd82d8dbf7f33146786/dist/video-player-scroller/_videoscroller.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/f2de452c1f23c296c2378fd82d8dbf7f33146786/dist/video-player-scroller/vimeo.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/f2de452c1f23c296c2378fd82d8dbf7f33146786/dist/video-player-scroller/twitch.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/f2de452c1f23c296c2378fd82d8dbf7f33146786/dist/video-player-scroller/youtube.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/f2de452c1f23c296c2378fd82d8dbf7f33146786/dist/video-player-scroller/dropbox.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/f2de452c1f23c296c2378fd82d8dbf7f33146786/dist/video-player-scroller/vidyard.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/utils/utils.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/utils/reacthook.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/video-player-scroller/_videoscroller.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/video-player-scroller/vimeo.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/video-player-scroller/twitch.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/video-player-scroller/youtube.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/video-player-scroller/dropbox.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/video-player-scroller/vidyard.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
