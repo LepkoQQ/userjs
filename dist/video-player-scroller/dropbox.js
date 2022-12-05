@@ -8,15 +8,8 @@
   const scrollerOptions = {
     color: '#1261fe',
     // eslint-disable-next-line no-unused-vars
-    getRightOffset(player) {
-      return 10;
-    },
-    // eslint-disable-next-line no-unused-vars
     getBottomOffset(player) {
       return 10;
-    },
-    getSpeedContainerElement(player) {
-      return null;
     },
   };
 

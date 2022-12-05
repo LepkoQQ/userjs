@@ -9,12 +9,12 @@
       logger: LOGGER,
       color: 'rgb(169, 112, 255)',
       // eslint-disable-next-line no-unused-vars
-      getRightOffset(player) {
-        return 20;
-      },
-      // eslint-disable-next-line no-unused-vars
       getBottomOffset(player) {
         return 90;
+      },
+      // eslint-disable-next-line no-unused-vars
+      getLeftOffset(player) {
+        return 20;
       },
       // eslint-disable-next-line no-unused-vars
       getVolume(player) {
@@ -30,36 +30,16 @@
         playerApi.setVolume(newVolume);
         return newVolume * 100;
       },
-      getSpeedContainerElement(player) {
-        return _.get('.video-ref .player-controls__right-control-group', player);
-      },
-      addSpeedTextElement(container) {
-        const div = _.create('div');
-        const element = _.create('span.__ext__speed_element_pill', {
-          textContent: '1x',
-        });
-        div.appendChild(element);
-        container.insertBefore(div, container.firstElementChild);
-        return element;
-      },
       getPlaybackRate() {
         if (playerApi) {
           return playerApi.getPlaybackRate();
         }
         return 1;
       },
-      changeSpeed(player, increase) {
+      setPlaybackRate(player, value) {
         if (playerApi) {
-          const step = 0.25;
-          const speed = playerApi.getPlaybackRate();
-          const newSpeed = increase ? speed + step : speed - step;
-          if (newSpeed > 0) {
-            playerApi.setPlaybackRate(newSpeed);
-            return newSpeed;
-          }
-          return speed;
+          playerApi.setPlaybackRate(value);
         }
-        return 1;
       },
       getProgressContainerElement(player) {
         return _.get('.video-player__overlay', player);

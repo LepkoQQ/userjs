@@ -19,18 +19,6 @@ const VideoScroller = (function createVideoScroller() {
       right: 0;
       width: 100%;
     }
-    .ext_playback_rate_text {
-      position: absolute;
-      background: rgba(0,0,0,0.4);
-      z-index: 2000;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity .1s cubic-bezier(0.4,0,1,1);
-      font-size: 18px;
-      padding: 5px 6px;
-      line-height: 1;
-      font-weight: 400;
-    }
     .ext_progress_bar {
       position: absolute;
       bottom: 0;
@@ -53,6 +41,38 @@ const VideoScroller = (function createVideoScroller() {
     .ext_progress_bar_fill_buffer {
       background: rgba(255,255,255,0.4);
     }
+    .ext_extra_data_container {
+      all: initial;
+      position: absolute;
+      top: 0;
+      right: 0;
+      z-index: 2000;
+      width: 100px;
+      height: 100px;
+      background: rgba(0,0,0,0.5);
+      box-shadow: 0 0 1px 0 #fff;
+      display: grid;
+      padding: 4px;
+      gap: 4px;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      opacity: 1;
+      transition: opacity .1s cubic-bezier(0.4,0,1,1);
+    }
+    .ext_extra_data_container > div {
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: row-resize;
+      color: #fff;
+      font-family: "Segoe UI", Arial;
+      font-size: 11px;
+      line-height: 1.2;
+    }
+    .ext_extra_data_container > div:hover {
+      background: rgba(25,25,0,0.5);
+    }
   `);
 
   const DEFAULT_OPTIONS = {
@@ -62,12 +82,20 @@ const VideoScroller = (function createVideoScroller() {
       return player;
     },
     // eslint-disable-next-line no-unused-vars
-    getRightOffset(player) {
+    getBottomOffset(player) {
       return 0;
     },
     // eslint-disable-next-line no-unused-vars
-    getBottomOffset(player) {
-      return 0;
+    getLeftOffset(player) {
+      return this.getBottomOffset(player);
+    },
+    // eslint-disable-next-line no-unused-vars
+    getTopOffset(player) {
+      return this.getLeftOffset(player);
+    },
+    // eslint-disable-next-line no-unused-vars
+    getRightOffset(player) {
+      return this.getLeftOffset(player);
     },
     getVolume(player) {
       const video = _.get('video', player);
@@ -84,25 +112,13 @@ const VideoScroller = (function createVideoScroller() {
       video.volume = newVolume;
       return newVolume * 100;
     },
-    getSpeedContainerElement(player) {
-      return player;
-    },
-    addSpeedTextElement(container) {
-      return container.insertBefore(_.create('button', '1x'), container.firstElementChild);
-    },
     getPlaybackRate(player) {
       const video = _.get('video', player);
       return video.playbackRate;
     },
-    changeSpeed(player, increase) {
-      const step = 0.25;
+    setPlaybackRate(player, value) {
       const video = _.get('video', player);
-      const speed = video.playbackRate;
-      const newSpeed = increase ? speed + step : speed - step;
-      if (newSpeed > 0) {
-        video.playbackRate = newSpeed;
-      }
-      return video.playbackRate;
+      video.playbackRate = value;
     },
     getProgressContainerElement(player) {
       return player;
@@ -176,21 +192,9 @@ const VideoScroller = (function createVideoScroller() {
       this.volumeWheelElement = this.options.getVolumeWheelElement(this.player);
       if (this.volumeWheelElement) {
         this.onScrollPlayer = this.onScrollPlayer.bind(this);
+        this.onMouseMovePlayer = this.onMouseMovePlayer.bind(this);
         this.volumeWheelElement.addEventListener('wheel', this.onScrollPlayer);
-      }
-
-      // scroll button/label to control speed
-      const speedContainerElement = this.options.getSpeedContainerElement(this.player);
-      if (speedContainerElement) {
-        this.speedTextElement = this.options.addSpeedTextElement(speedContainerElement);
-        this.onScrollSpeed = this.onScrollSpeed.bind(this);
-        this.speedTextElement.addEventListener('wheel', this.onScrollSpeed);
-        //
-        this.zoomTextElement = this.options.addSpeedTextElement(speedContainerElement);
-        this.onScrollZoom = this.onScrollZoom.bind(this);
-        this.zoomTextElement.style.outline = '1px dashed gold !important';
-        this.zoomTextElement.textContent = '1';
-        this.zoomTextElement.addEventListener('wheel', this.onScrollZoom);
+        this.volumeWheelElement.addEventListener('mousemove', this.onMouseMovePlayer);
       }
 
       // show player progress bar when controls are hidden
@@ -222,19 +226,29 @@ const VideoScroller = (function createVideoScroller() {
 
       if (this.volumeWheelElement) {
         this.volumeWheelElement.removeEventListener('wheel', this.onScrollPlayer);
+        this.volumeWheelElement.removeEventListener('mousemove', this.onMouseMovePlayer);
         this.volumeWheelElement = null;
       }
 
       if (this.speedTextElement) {
         this.speedTextElement.removeEventListener('wheel', this.onScrollSpeed);
+        this.speedTextElement.removeEventListener('click', this.onClickSpeed);
         this.speedTextElement.remove();
         this.speedTextElement = null;
       }
 
       if (this.zoomTextElement) {
         this.zoomTextElement.removeEventListener('wheel', this.onScrollZoom);
+        this.zoomTextElement.removeEventListener('click', this.onClickZoom);
         this.zoomTextElement.remove();
         this.zoomTextElement = null;
+      }
+
+      if (this.panTextElement) {
+        this.panTextElement.removeEventListener('wheel', this.onScrollPan);
+        this.panTextElement.removeEventListener('click', this.onClickPan);
+        this.panTextElement.remove();
+        this.panTextElement = null;
       }
 
       this.progressContainerElement = null;
@@ -287,12 +301,18 @@ const VideoScroller = (function createVideoScroller() {
           if (event.shiftKey && !event.ctrlKey && !event.altKey) {
             event.preventDefault();
             event.stopPropagation();
-            this.changeSpeed(event.code === 'Period');
+            this.changeSpeed({ increase: event.code === 'Period' });
           } else if (!event.shiftKey && event.ctrlKey && !event.altKey) {
             event.preventDefault();
             event.stopPropagation();
-            this.changeZoom(event.code === 'Period');
+            this.changeZoom({ increase: event.code === 'Period' });
           }
+          break;
+        }
+        case 'KeyX': {
+          event.preventDefault();
+          event.stopPropagation();
+          setTimeout(() => this.showVideoOverlayElements(), 0);
           break;
         }
         default:
@@ -341,18 +361,55 @@ const VideoScroller = (function createVideoScroller() {
     onScrollSpeed(event) {
       event.preventDefault();
       event.stopPropagation();
-      this.changeSpeed(event.deltaY < 0);
+      this.changeSpeed({ increase: event.deltaY < 0 });
+    }
+
+    onClickSpeed(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.changeSpeed({ reset: true });
     }
 
     onScrollZoom(event) {
       event.preventDefault();
       event.stopPropagation();
-      this.changeZoom(event.deltaY < 0);
+      this.changeZoom({ increase: event.deltaY < 0 });
     }
 
-    changeSpeed(increase) {
+    onClickZoom(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.changeZoom({ reset: true });
+    }
+
+    onScrollPan(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.changePan({
+        negative: event.deltaY < 0,
+        direction: event.shiftKey ? 'horizontal' : 'vertical',
+      });
+    }
+
+    onClickPan(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.changePan({ reset: true });
+    }
+
+    changeSpeed({ reset = false, increase = true } = {}) {
       if (this.player) {
-        const newSpeed = this.options.changeSpeed(this.player, increase);
+        const step = 0.25;
+        const speed = this.options.getPlaybackRate(this.player);
+        let newSpeed = speed;
+        if (reset) {
+          newSpeed = 1;
+        } else {
+          newSpeed = increase ? speed + step : speed - step;
+        }
+        if (newSpeed > 0) {
+          this.options.setPlaybackRate(this.player, newSpeed);
+        }
         if (this.speedTextElement) {
           this.speedTextElement.textContent = `${newSpeed}x`;
         }
@@ -360,12 +417,17 @@ const VideoScroller = (function createVideoScroller() {
       }
     }
 
-    changeZoom(increase) {
+    changeZoom({ reset = false, increase = true } = {}) {
       if (this.player) {
         const step = 0.05;
         const video = _.get('video', this.player);
         const zoom = this.currentZoom || 1;
-        const newZoom = increase ? zoom + step : zoom - step;
+        let newZoom = zoom;
+        if (reset) {
+          newZoom = 1;
+        } else {
+          newZoom = increase ? newZoom + step : newZoom - step;
+        }
         if (newZoom > 0) {
           video.style.transform = `scale(${newZoom})`;
           this.currentZoom = newZoom;
@@ -373,7 +435,43 @@ const VideoScroller = (function createVideoScroller() {
         if (this.zoomTextElement) {
           this.zoomTextElement.textContent = `${newZoom.toFixed(2)}`;
         }
+        this.setVideoTransform(video);
+        setTimeout(() => this.showVideoOverlayElements(), 0);
       }
+    }
+
+    changePan({ reset = false, negative = true, direction = 'vertical' } = {}) {
+      if (this.player) {
+        const video = _.get('video', this.player);
+        const step = 1;
+        const pan = this.currentPan || '0 / 0';
+        const [panX, panY] = pan.split(' / ');
+        let newPanX = Number(panX);
+        let newPanY = Number(panY);
+        if (reset) {
+          newPanX = 0;
+          newPanY = 0;
+        } else {
+          if (direction === 'horizontal') {
+            newPanX = negative ? newPanX - step : newPanX + step;
+          } else {
+            newPanY = negative ? newPanY - step : newPanY + step;
+          }
+        }
+        this.currentPan = `${newPanX.toFixed(0)} / ${newPanY.toFixed(0)}`;
+        if (this.panTextElement) {
+          this.panTextElement.textContent = this.currentPan;
+        }
+        this.setVideoTransform(video);
+        setTimeout(() => this.showVideoOverlayElements(), 0);
+      }
+    }
+
+    setVideoTransform(video) {
+      const zoom = this.currentZoom || 1;
+      const pan = this.currentPan || '0 / 0';
+      const [panX, panY] = pan.split(' / ');
+      video.style.transform = `translate(${panX}%, ${panY}%) scale(${zoom})`;
     }
 
     onScrollPlayer(event) {
@@ -381,6 +479,10 @@ const VideoScroller = (function createVideoScroller() {
         event.preventDefault();
         this.changeVolume(event.deltaY < 0);
       }
+    }
+
+    onMouseMovePlayer(event) {
+      setTimeout(() => this.showVideoOverlayElements(), 0);
     }
 
     changeVolume(increase) {
@@ -392,6 +494,7 @@ const VideoScroller = (function createVideoScroller() {
       const container = this.progressContainerElement || this.player;
       const rightOffset = this.options.getRightOffset(this.player);
       const bottomOffset = this.options.getBottomOffset(this.player);
+      const topOffset = this.options.getTopOffset(this.player);
       const volumeBar = _.get('.ext_volume_bar', container)
         || container.appendChild(_.create('.ext_volume_bar'));
       const volumeBarFill = _.get('.ext_volume_bar_fill', container)
@@ -400,8 +503,7 @@ const VideoScroller = (function createVideoScroller() {
             style: `background:${this.options.color}`,
           })
         );
-      const playbackRateText = _.get('.ext_playback_rate_text', container)
-        || container.appendChild(_.create('.ext_playback_rate_text'));
+      const extraDataContainer = this.getOrCreateExtraDataContainer(container);
 
       if (this.player.hasAttribute('data-ext_overlay_timeout')) {
         const oldTid = this.player.getAttribute('data-ext_overlay_timeout');
@@ -417,19 +519,18 @@ const VideoScroller = (function createVideoScroller() {
       volumeBar.style.right = `${rightOffset}px`;
       volumeBar.style.bottom = `${bottomOffset}px`;
 
-      playbackRateText.textContent = `${this.options.getPlaybackRate(this.player)}x`;
-      playbackRateText.style.visibility = 'visible';
-      playbackRateText.style.opacity = 1;
-      playbackRateText.style.right = `${rightOffset + 20}px`;
-      playbackRateText.style.bottom = `${bottomOffset + 170}px`;
+      extraDataContainer.style.visibility = 'visible';
+      extraDataContainer.style.opacity = 1;
+      extraDataContainer.style.right = `${rightOffset}px`;
+      extraDataContainer.style.top = `${topOffset}px`;
 
       const newTid = setTimeout(() => {
         volumeBar.style.opacity = 0;
-        playbackRateText.style.opacity = 0;
+        extraDataContainer.style.opacity = 0;
         const onTransitionEnd = () => {
           if (!this.player.hasAttribute('data-ext_overlay_timeout')) {
             volumeBar.style.visibility = 'hidden';
-            playbackRateText.style.visibility = 'hidden';
+            extraDataContainer.style.visibility = 'hidden';
           }
           volumeBar.removeEventListener('transitionend', onTransitionEnd);
         };
@@ -460,6 +561,42 @@ const VideoScroller = (function createVideoScroller() {
       const multiplier = event.code === 'ArrowLeft' || event.code === 'ArrowRight' ? 1 : 18;
 
       return step * multiplier * direction;
+    }
+
+    getOrCreateExtraDataContainer(container) {
+      const extraDataContainer = _.get('.ext_extra_data_container', container) || container.appendChild(_.create('.ext_extra_data_container'));
+
+      if (!this.speedTextElement) {
+        this.speedTextElement = extraDataContainer.appendChild(_.create('div', '1x'));
+        this.speedTextElement.style.gridRow = '1';
+        this.speedTextElement.style.gridColumn = '1';
+        this.onScrollSpeed = this.onScrollSpeed.bind(this);
+        this.onClickSpeed = this.onClickSpeed.bind(this);
+        this.speedTextElement.addEventListener('wheel', this.onScrollSpeed);
+        this.speedTextElement.addEventListener('click', this.onClickSpeed);
+      }
+
+      if (!this.zoomTextElement) {
+        this.zoomTextElement = extraDataContainer.appendChild(_.create('div', '1.00'));
+        this.zoomTextElement.style.gridRow = '2';
+        this.zoomTextElement.style.gridColumn = '1';
+        this.onScrollZoom = this.onScrollZoom.bind(this);
+        this.onClickZoom = this.onClickZoom.bind(this);
+        this.zoomTextElement.addEventListener('wheel', this.onScrollZoom);
+        this.zoomTextElement.addEventListener('click', this.onClickZoom);
+      }
+
+      if (!this.panTextElement) {
+        this.panTextElement = extraDataContainer.appendChild(_.create('div', '0 / 0'));
+        this.panTextElement.style.gridRow = '2';
+        this.panTextElement.style.gridColumn = '2';
+        this.onScrollPan = this.onScrollPan.bind(this);
+        this.onClickPan = this.onClickPan.bind(this);
+        this.panTextElement.addEventListener('wheel', this.onScrollPan);
+        this.panTextElement.addEventListener('click', this.onClickPan);
+      }
+
+      return extraDataContainer;
     }
   };
 }());

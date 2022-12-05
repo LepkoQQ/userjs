@@ -22,13 +22,18 @@
     getVolumeWheelElement(player) {
       return player.parentElement;
     },
-    getRightOffset(player) {
-      const chromeBottom = _.get('.ytp-chrome-bottom', player);
-      return chromeBottom ? _.getStyle(chromeBottom, 'left') : 0;
-    },
     getBottomOffset(player) {
       const chromeBottom = _.get('.ytp-chrome-bottom', player);
-      return chromeBottom ? _.getStyle(chromeBottom, 'height') * 1.5 : 0;
+      return chromeBottom ? _.getStyle(chromeBottom, 'height') + _.getStyle(chromeBottom, 'left') + _.getStyle(chromeBottom, 'paddingTop') : 0;
+    },
+    getTopOffset(player) {
+      const chromeTop = _.get('.ytp-chrome-top', player);
+      const chromeBottom = _.get('.ytp-chrome-bottom', player);
+      return chromeTop ? _.getStyle(chromeTop, 'height') + _.getStyle(chromeBottom, 'left')  : 0;
+    },
+    getLeftOffset(player) {
+      const chromeBottom = _.get('.ytp-chrome-bottom', player);
+      return chromeBottom ? _.getStyle(chromeBottom, 'left') : 0;
     },
     getVolume(player) {
       return player.isMuted() ? 0 : player.getVolume();
@@ -43,33 +48,14 @@
       player.setVolume(newVolume);
       return newVolume;
     },
-    getSpeedContainerElement(player) {
-      return _.get('.ytp-right-controls', player);
-    },
-    addSpeedTextElement(container) {
-      const element = _.create('button.ytp-button', {
-        style: 'position:relative;display:inline-flex',
-        innerHTML: '<div style="position:absolute;top:0;width:100%;text-align:center">1x</div>',
-      });
-      container.insertBefore(element, container.firstChild);
-      return element.firstChild;
-    },
-    changeSpeed(player, increase) {
-      const step = 0.25;
+    setPlaybackRate(player, value) {
       const video = _.get('video', player);
-      const speed = video.playbackRate;
-      const newSpeed = increase ? speed + step : speed - step;
-      if (newSpeed > 0) {
-        const rates = player.getAvailablePlaybackRates();
-        const index = rates.indexOf(newSpeed);
-        if (index !== -1) {
-          player.setPlaybackRate(newSpeed);
-        } else {
-          video.playbackRate = newSpeed;
-        }
-        video.playbackRate = newSpeed;
+      const rates = player.getAvailablePlaybackRates();
+      const index = rates.indexOf(value);
+      if (index !== -1) {
+        player.setPlaybackRate(value);
       }
-      return video.playbackRate;
+      video.playbackRate = value;
     },
     getVideoDuration(player) {
       return player.getDuration();

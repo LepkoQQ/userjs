@@ -8,26 +8,12 @@
   const scrollerOptions = {
     color: '#00adef',
     // eslint-disable-next-line no-unused-vars
-    getRightOffset(player) {
-      return 10;
-    },
-    // eslint-disable-next-line no-unused-vars
     getBottomOffset(player) {
       return 64;
     },
-    getSpeedContainerElement(player) {
-      return _.get('.vp-sidedock', player);
-    },
-    addSpeedTextElement(container) {
-      const box = _.create('.box');
-      const element = box.appendChild(
-        _.create('button.rounded-box', {
-          textContent: '1x',
-          style: 'color:#fff',
-        })
-      );
-      container.appendChild(box);
-      return element;
+    // eslint-disable-next-line no-unused-vars
+    getLeftOffset(player) {
+      return 10;
     },
   };
 
