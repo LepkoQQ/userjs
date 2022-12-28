@@ -12,6 +12,7 @@
 // @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/video-player-scroller/youtube.js
 // @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/video-player-scroller/dropbox.js
 // @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/video-player-scroller/vidyard.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/87fc4be817c9473d91904a0b028f3c887251225f/dist/video-player-scroller/patreon.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
