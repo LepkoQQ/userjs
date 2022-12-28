@@ -70,6 +70,9 @@ const VideoScroller = (function createVideoScroller() {
       font-size: 11px;
       line-height: 1.2;
     }
+    .ext_extra_data_container > .ext_toggle_fullscreen {
+      cursor: pointer;
+    }
     .ext_extra_data_container > div:hover {
       background: rgba(25,25,0,0.5);
     }
@@ -80,6 +83,9 @@ const VideoScroller = (function createVideoScroller() {
     color: '#000',
     getVolumeWheelElement(player) {
       return player;
+    },
+    getFullscreenElement(player) {
+      return null;
     },
     // eslint-disable-next-line no-unused-vars
     getBottomOffset(player) {
@@ -237,6 +243,12 @@ const VideoScroller = (function createVideoScroller() {
         this.speedTextElement = null;
       }
 
+      if (this.fullscreenElement) {
+        this.fullscreenElement.removeEventListener('click', this.onClickFullscreen);
+        this.fullscreenElement.remove();
+        this.fullscreenElement = null;
+      }
+
       if (this.zoomTextElement) {
         this.zoomTextElement.removeEventListener('wheel', this.onScrollZoom);
         this.zoomTextElement.removeEventListener('click', this.onClickZoom);
@@ -309,6 +321,15 @@ const VideoScroller = (function createVideoScroller() {
           }
           break;
         }
+        case 'KeyF': {
+          const fsElement = this.options.getFullscreenElement(this.player);
+          if (fsElement) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.toggleFullscreen();
+          }
+          break;
+        }
         case 'KeyX': {
           event.preventDefault();
           event.stopPropagation();
@@ -370,6 +391,12 @@ const VideoScroller = (function createVideoScroller() {
       this.changeSpeed({ reset: true });
     }
 
+    onClickFullscreen(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.toggleFullscreen();
+    }
+
     onScrollZoom(event) {
       event.preventDefault();
       event.stopPropagation();
@@ -395,6 +422,18 @@ const VideoScroller = (function createVideoScroller() {
       event.preventDefault();
       event.stopPropagation();
       this.changePan({ reset: true });
+    }
+
+    toggleFullscreen() {
+      const fsElement = this.options.getFullscreenElement(this.player);
+      if (!fsElement) {
+        return;
+      }
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        fsElement.requestFullscreen();
+      }
     }
 
     changeSpeed({ reset = false, increase = true } = {}) {
@@ -574,6 +613,15 @@ const VideoScroller = (function createVideoScroller() {
         this.onClickSpeed = this.onClickSpeed.bind(this);
         this.speedTextElement.addEventListener('wheel', this.onScrollSpeed);
         this.speedTextElement.addEventListener('click', this.onClickSpeed);
+      }
+
+      const fsElement = this.options.getFullscreenElement(this.player);
+      if (!this.fullscreenElement && fsElement) {
+        this.fullscreenElement = extraDataContainer.appendChild(_.create('div.ext_toggle_fullscreen', '⛶'));
+        this.fullscreenElement.style.gridRow = '1';
+        this.fullscreenElement.style.gridColumn = '2';
+        this.onClickFullscreen = this.onClickFullscreen.bind(this);
+        this.fullscreenElement.addEventListener('click', this.onClickFullscreen);
       }
 
       if (!this.zoomTextElement) {
