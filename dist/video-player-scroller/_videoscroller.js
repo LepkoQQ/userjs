@@ -76,6 +76,12 @@ const VideoScroller = (function createVideoScroller() {
     .ext_extra_data_container > div:hover {
       background: rgba(25,25,0,0.5);
     }
+    .ext_expand_to_fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 2147483647 !important;
+      background: black !important;
+    }
   `);
 
   const DEFAULT_OPTIONS = {
@@ -429,10 +435,18 @@ const VideoScroller = (function createVideoScroller() {
       if (!fsElement) {
         return;
       }
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        fsElement.requestFullscreen();
+      fsElement.classList.toggle('ext_expand_to_fullscreen');
+
+      // Fix "position: fixed" inside 3d transformed elements
+      let el = fsElement;
+      while(el) {
+        if (getComputedStyle(el).transformStyle !== 'flat') {
+          el.style.transformStyle = 'flat';
+        }
+        if (getComputedStyle(el).transform !== 'none') {
+          el.style.transform = 'none';
+        }
+        el = el.parentElement;
       }
     }
 

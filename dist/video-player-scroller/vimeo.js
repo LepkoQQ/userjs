@@ -7,6 +7,12 @@
 
   const scrollerOptions = {
     color: '#00adef',
+    getFullscreenElement(player) {
+      if (window === window.top) {
+        return player;
+      }
+      return null;
+    },
     // eslint-disable-next-line no-unused-vars
     getBottomOffset(player) {
       return 64;
