@@ -4,7 +4,7 @@
 
   let LOGGER;
   const scrollers = new WeakMap();
-  const YT_PlayerState = {
+  const YTPlayerState = {
     UNSTARTED: -1,
     ENDED: 0,
     PLAYING: 1,
@@ -12,8 +12,8 @@
     BUFFERING: 3,
     CUED: 5,
   };
-  const YT_PlayerStateString = (state) => {
-    const [key] = Object.entries(YT_PlayerState).find(([key, value]) => value === state);
+  const YTPlayerStateString = (state) => {
+    const [key] = Object.entries(YTPlayerState).find(([, value]) => value === state);
     return key || `UNKNOWN (${state})`;
   };
 
@@ -29,7 +29,7 @@
     getTopOffset(player) {
       const chromeTop = _.get('.ytp-chrome-top', player);
       const chromeBottom = _.get('.ytp-chrome-bottom', player);
-      return chromeTop ? _.getStyle(chromeTop, 'height') + _.getStyle(chromeBottom, 'left')  : 0;
+      return chromeTop ? _.getStyle(chromeTop, 'height') + _.getStyle(chromeBottom, 'left') : 0;
     },
     getLeftOffset(player) {
       const chromeBottom = _.get('.ytp-chrome-bottom', player);
@@ -64,10 +64,10 @@
       return player.getCurrentTime();
     },
     isPaused(player) {
-      return ![YT_PlayerState.PLAYING, YT_PlayerState.BUFFERING].includes(player.getPlayerState());
+      return ![YTPlayerState.PLAYING, YTPlayerState.BUFFERING].includes(player.getPlayerState());
     },
     playOrPause(player) {
-      if ([YT_PlayerState.PLAYING, YT_PlayerState.BUFFERING].includes(player.getPlayerState())) {
+      if ([YTPlayerState.PLAYING, YTPlayerState.BUFFERING].includes(player.getPlayerState())) {
         player.pauseVideo();
       } else {
         player.playVideo();
@@ -92,10 +92,10 @@
     // If you call pauseVideo at that time, it will change state to PAUSE, however when it stops buffering,
     // it will change to PLAYING again, so we need pause in onStateChange when new state is PLAYING.
     const state = player.getPlayerState();
-    LOGGER.log('stop autoplay called; state =', YT_PlayerStateString(state));
+    LOGGER.log('stop autoplay called; state =', YTPlayerStateString(state));
     const onStateChange = (newState) => {
-      console.log('state changed; state =', YT_PlayerStateString(newState));
-      if (newState === YT_PlayerState.PLAYING) {
+      console.log('state changed; state =', YTPlayerStateString(newState));
+      if (newState === YTPlayerState.PLAYING) {
         console.log('trying to pause');
         player.pauseVideo();
         player.removeEventListener('onStateChange', onStateChange);
@@ -112,13 +112,13 @@
     // document.addEventListener('click', onClick);
   }
 
-  async function onNavigateFinish(page, event) {
-    if (['watch', 'embed', 'channel'].includes(page)) {
-      _.all(playerSelector).forEach((player) => {
-        stopAutoplay(player);
-      });
-    }
-  }
+  // async function onNavigateFinish(page, event) {
+  //   if (['watch', 'embed', 'channel'].includes(page)) {
+  //     _.all(playerSelector).forEach((player) => {
+  //       stopAutoplay(player);
+  //     });
+  //   }
+  // }
 
   if (context.vpsSite == null && (window.location.host.match(/\.youtube\.com$/) || window.location.host.match(/youtube\.googleapis\.com$/))) {
     context.vpsSite = {
@@ -158,7 +158,7 @@
         });
 
         if (window.location.pathname.startsWith('/embed/')) {
-          onNavigateFinish('embed', null);
+          // onNavigateFinish('embed', null);
           return;
         }
 
@@ -169,7 +169,7 @@
           if (page === 'browse' && url && (url.startsWith('/c/') || url.startsWith('/channel/') || url.startsWith('/user/'))) {
             page = 'channel';
           }
-          onNavigateFinish(page, event);
+          // onNavigateFinish(page, event);
         });
       },
     };

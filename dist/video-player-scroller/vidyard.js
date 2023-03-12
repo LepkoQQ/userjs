@@ -7,12 +7,10 @@
 
   const scrollerOptions = {
     color: '#1261fe',
-    // eslint-disable-next-line no-unused-vars
-    getBottomOffset(player) {
+    getBottomOffset() {
       return 55;
     },
-    // eslint-disable-next-line no-unused-vars
-    getLeftOffset(player) {
+    getLeftOffset() {
       return 10;
     },
   };
@@ -66,13 +64,11 @@
             }
           `);
 
-          _.waitFor(() => _.get('video[data-testid="hls-video"]'))
-            .then((player) => {
-              playerLoaded(player.parentElement);
-            });
+          _.waitFor(() => _.get('video[data-testid="hls-video"]')).then((player) => {
+            playerLoaded(player.parentElement);
+          });
         }
-
       },
     };
   }
-}(this, this.unsafeWindow || window));
+})(this, this.unsafeWindow || window);

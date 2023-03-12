@@ -138,10 +138,7 @@
     //   });
 
     hook
-      .findComponent(
-        'highwind-player',
-        (c) => c.setPlayerActive && c.props && c.props.playerEvents && c.props.mediaPlayerInstance
-      )
+      .findComponent('highwind-player', (c) => c.setPlayerActive && c.props && c.props.playerEvents && c.props.mediaPlayerInstance)
       .then((wrappedComponent) => {
         LOGGER.log('found component', wrappedComponent.name, wrappedComponent);
 
@@ -150,10 +147,7 @@
         wrappedComponent.wrap({
           maybeAttachDomEventListeners() {
             if (this.props.containerRef && this.props.mediaPlayerInstance && !scrollers.has(this)) {
-              const vs = new VideoScroller(
-                this.props.containerRef,
-                createScrollerOptions(this.props.mediaPlayerInstance, this.props.playerEvents)
-              );
+              const vs = new VideoScroller(this.props.containerRef, createScrollerOptions(this.props.mediaPlayerInstance, this.props.playerEvents));
               scrollers.set(this, vs);
               // prevent auto playing next video
               const x = '.autoplay-vod__content-container button';
@@ -179,7 +173,7 @@
                   }
 
                   if (document.querySelector(y)) {
-                    if(!this.props.mediaPlayerInstance.isPaused()) {
+                    if (!this.props.mediaPlayerInstance.isPaused()) {
                       this.props.mediaPlayerInstance.pause();
                     }
                   }
@@ -225,7 +219,7 @@
                   viewingHistory: {
                     ...this.props.video.self.viewingHistory,
                     position: this.props.video.lengthSeconds,
-                  }
+                  },
                 },
               };
             }

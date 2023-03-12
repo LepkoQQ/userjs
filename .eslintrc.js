@@ -5,11 +5,14 @@ module.exports = {
   },
   parserOptions: {
     sourceType: 'script',
+    ecmaVersion: 2022,
   },
   extends: ['airbnb-base', 'prettier', 'plugin:prettier/recommended'],
   plugins: ['prettier'],
   rules: {
+    strict: ['error', 'function'],
     'no-console': 'off',
+    'no-param-reassign': ['error', { props: false }],
   },
 };
 
@@ -22,9 +25,7 @@ module.exports = {
 //     "sourceType": "script"
 //   },
 //   "rules": {
-//     "strict": ["error", "function"],
 //     "no-plusplus": "off",
-//     "no-param-reassign": ["error", { "props": false }],
 //     "prefer-destructuring": ["error", { "object": true, "array": false }],
 //     "no-debugger": "off",
 //     "comma-dangle": [

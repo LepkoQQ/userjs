@@ -13,12 +13,10 @@
       }
       return null;
     },
-    // eslint-disable-next-line no-unused-vars
-    getBottomOffset(player) {
+    getBottomOffset() {
       return 64;
     },
-    // eslint-disable-next-line no-unused-vars
-    getLeftOffset(player) {
+    getLeftOffset() {
       return 10;
     },
   };
@@ -102,4 +100,4 @@
       },
     };
   }
-}(this, this.unsafeWindow || window));
+})(this, this.unsafeWindow || window);

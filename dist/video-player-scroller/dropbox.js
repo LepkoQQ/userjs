@@ -30,11 +30,10 @@
         scrollerOptions.logger = LOGGER;
         LOGGER.log('started', window.location);
 
-        _.waitFor(() => _.get('.video-js'))
-          .then((player) => {
-            playerLoaded(player);
-          });
+        _.waitFor(() => _.get('.video-js')).then((player) => {
+          playerLoaded(player);
+        });
       },
     };
   }
-}(this, this.unsafeWindow || window));
+})(this, this.unsafeWindow || window);

@@ -10,10 +10,10 @@
     getFullscreenElement(player) {
       return player;
     },
-    getBottomOffset(player) {
+    getBottomOffset() {
       return 70;
     },
-    getLeftOffset(player) {
+    getLeftOffset() {
       return 16;
     },
   };
@@ -50,6 +50,7 @@
       },
       false
     );
+    // eslint-disable-next-line no-cond-assign
     while ((currentNode = treeWalker.nextNode())) {
       currentNode.style['max-width'] = '90rem';
     }
@@ -67,6 +68,7 @@
       },
       false
     );
+    // eslint-disable-next-line no-cond-assign
     while ((currentNode = treeWalker.nextNode())) {
       currentNode.style['max-width'] = '100%';
       currentNode.style['flex-basis'] = '100%';

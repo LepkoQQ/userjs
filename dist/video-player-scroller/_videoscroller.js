@@ -90,6 +90,7 @@ const VideoScroller = (function createVideoScroller() {
     getVolumeWheelElement(player) {
       return player;
     },
+    // eslint-disable-next-line no-unused-vars
     getFullscreenElement(player) {
       return null;
     },
@@ -97,15 +98,12 @@ const VideoScroller = (function createVideoScroller() {
     getBottomOffset(player) {
       return 0;
     },
-    // eslint-disable-next-line no-unused-vars
     getLeftOffset(player) {
       return this.getBottomOffset(player);
     },
-    // eslint-disable-next-line no-unused-vars
     getTopOffset(player) {
       return this.getLeftOffset(player);
     },
-    // eslint-disable-next-line no-unused-vars
     getRightOffset(player) {
       return this.getLeftOffset(player);
     },
@@ -145,7 +143,7 @@ const VideoScroller = (function createVideoScroller() {
     },
     getCurrentBuffer(player) {
       const video = _.get('video', player);
-      for (let i = 0; i < video.buffered.length; i++) {
+      for (let i = 0; i < video.buffered.length; i += 1) {
         const start = video.buffered.start(i);
         const end = video.buffered.end(i);
         if (video.currentTime >= start && video.currentTime <= end) {
@@ -195,10 +193,8 @@ const VideoScroller = (function createVideoScroller() {
   return class VideoScroller {
     constructor(player, options = {}) {
       this.player = player;
-      this.options = Object.assign({}, DEFAULT_OPTIONS, options);
-      this.options.logger = this.options.logger
-        ? this.options.logger.push('scroller')
-        : _.logger('scroller');
+      this.options = { ...DEFAULT_OPTIONS, ...options };
+      this.options.logger = this.options.logger ? this.options.logger.push('scroller') : _.logger('scroller');
 
       // scroll player area to control volume
       this.volumeWheelElement = this.options.getVolumeWheelElement(this.player);
@@ -213,12 +209,8 @@ const VideoScroller = (function createVideoScroller() {
       this.progressContainerElement = this.options.getProgressContainerElement(this.player);
       if (this.progressContainerElement) {
         const progress = this.progressContainerElement.appendChild(_.create('.ext_progress_bar'));
-        this.progressFillBufferElement = progress.appendChild(
-          _.create('.ext_progress_bar_fill_buffer')
-        );
-        this.progressFillElement = progress.appendChild(
-          _.create('.ext_progress_bar_fill', { style: `background:${this.options.color}` })
-        );
+        this.progressFillBufferElement = progress.appendChild(_.create('.ext_progress_bar_fill_buffer'));
+        this.progressFillElement = progress.appendChild(_.create('.ext_progress_bar_fill', { style: `background:${this.options.color}` }));
         this.updateProgress = this.updateProgress.bind(this);
         this.options.addTimeUpdateEventListener(this.player, this.updateProgress);
       }
@@ -357,11 +349,7 @@ const VideoScroller = (function createVideoScroller() {
 
     updateProgress() {
       if (!this.destroyed && this.player) {
-        if (
-          this.progressContainerElement
-          && this.progressFillElement
-          && this.progressFillBufferElement
-        ) {
+        if (this.progressContainerElement && this.progressFillElement && this.progressFillBufferElement) {
           const duration = this.options.getVideoDuration(this.player);
           const currentTime = this.options.getCurrentTime(this.player);
           const currentBuffer = this.options.getCurrentBuffer(this.player);
@@ -439,7 +427,7 @@ const VideoScroller = (function createVideoScroller() {
 
       // Fix "position: fixed" inside 3d transformed elements
       let el = fsElement;
-      while(el) {
+      while (el) {
         if (getComputedStyle(el).transformStyle !== 'flat') {
           el.style.transformStyle = 'flat';
         }
@@ -504,12 +492,10 @@ const VideoScroller = (function createVideoScroller() {
         if (reset) {
           newPanX = 0;
           newPanY = 0;
+        } else if (direction === 'horizontal') {
+          newPanX = negative ? newPanX - step : newPanX + step;
         } else {
-          if (direction === 'horizontal') {
-            newPanX = negative ? newPanX - step : newPanX + step;
-          } else {
-            newPanY = negative ? newPanY - step : newPanY + step;
-          }
+          newPanY = negative ? newPanY - step : newPanY + step;
         }
         this.currentPan = `${newPanX.toFixed(0)} / ${newPanY.toFixed(0)}`;
         if (this.panTextElement) {
@@ -534,6 +520,7 @@ const VideoScroller = (function createVideoScroller() {
       }
     }
 
+    // eslint-disable-next-line no-unused-vars
     onMouseMovePlayer(event) {
       setTimeout(() => this.showVideoOverlayElements(), 0);
     }
@@ -548,10 +535,10 @@ const VideoScroller = (function createVideoScroller() {
       const rightOffset = this.options.getRightOffset(this.player);
       const bottomOffset = this.options.getBottomOffset(this.player);
       const topOffset = this.options.getTopOffset(this.player);
-      const volumeBar = _.get('.ext_volume_bar', container)
-        || container.appendChild(_.create('.ext_volume_bar'));
-      const volumeBarFill = _.get('.ext_volume_bar_fill', container)
-        || volumeBar.appendChild(
+      const volumeBar = _.get('.ext_volume_bar', container) || container.appendChild(_.create('.ext_volume_bar'));
+      const volumeBarFill =
+        _.get('.ext_volume_bar_fill', container) ||
+        volumeBar.appendChild(
           _.create('.ext_volume_bar_fill', {
             style: `background:${this.options.color}`,
           })
@@ -661,4 +648,4 @@ const VideoScroller = (function createVideoScroller() {
       return extraDataContainer;
     }
   };
-}());
+})();
