@@ -131,7 +131,8 @@
           .ext_progress_bar {
             opacity: 0;
           }
-          .ytp-autohide .ext_progress_bar {
+          .ytp-autohide .ext_progress_bar,
+          .ytp-hide-controls .ext_progress_bar {
             opacity: 1;
           }
           .ytp-pause-overlay {
