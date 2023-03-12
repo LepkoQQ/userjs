@@ -226,8 +226,8 @@ const VideoScroller = (function createVideoScroller() {
       // add key shortcuts
       this.onKeyDown = this.onKeyDown.bind(this);
       this.onKeyUp = this.onKeyUp.bind(this);
-      document.addEventListener('keydown', this.onKeyDown, true);
-      document.addEventListener('keyup', this.onKeyUp, true);
+      window.addEventListener('keydown', this.onKeyDown, true);
+      window.addEventListener('keyup', this.onKeyUp, true);
 
       this.options.logger.log('created scroller');
     }
