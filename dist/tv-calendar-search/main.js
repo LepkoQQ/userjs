@@ -1,8 +1,9 @@
-/* global _:false, AsyncMenu:false */
+/* global _:false, AsyncMenu:false, APIFactory:false */
 (function main(context, window) {
   'use strict';
 
   let LOGGER;
+  let API;
 
   _.addCSS(`
     * {
@@ -147,14 +148,9 @@
             event.preventDefault();
             const queryData = getQueryData(event.currentTarget.parentElement);
             const values = (async () => {
-              await new Promise((res) => {
-                setTimeout(res, 2000);
-              });
-              return [...queryData.values];
+              const results = await API.getResults(queryData.query, queryData.mustContain);
+              return [...results, ...queryData.values];
             })();
-            // const values = Promise.resolve()
-            //   .then(() => API.getResults(queryData.query, queryData.mustContain))
-            //   .then((results) => [...results, ...queryData.values]);
             createMenu(event, { logger: LOGGER, values });
           },
         },
@@ -182,6 +178,7 @@
     init(logger) {
       LOGGER = logger.push('main');
       LOGGER.log('started', window.location.href);
+      API = APIFactory(LOGGER);
 
       _.waitFor(() => _.get('#cal')).then((cal) => {
         LOGGER.log('calendar detected');
