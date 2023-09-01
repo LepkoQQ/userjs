@@ -123,9 +123,11 @@ const _ = (function utils() {
       }
       return parent.insertBefore(_.create(selector), before);
     },
+    getOrCreateStyle(id) {
+      return _.getOrCreate(`style#ext_css__${id}`, document.head.parentNode, document.head.nextSibling);
+    },
     addCSS(css) {
-      const style = _.get('style#ext_css')
-        || document.head.parentNode.insertBefore(_.create('style#ext_css'), document.head.nextSibling);
+      const style = _.get('style#ext_css') || document.head.parentNode.insertBefore(_.create('style#ext_css'), document.head.nextSibling);
       style.insertAdjacentHTML('beforeend', css);
     },
     // UTILS
@@ -141,8 +143,8 @@ const _ = (function utils() {
       return str.split(find).join(replace);
     },
     waitForSelector(selector, options = {}) {
-      const _get = options.all ? _.all : _.get;
-      const el = options.parent ? _get(selector, options.parent) : _get(selector);
+      const get = options.all ? _.all : _.get;
+      const el = options.parent ? get(selector, options.parent) : get(selector);
       if (options.all ? el.length : el) {
         return Promise.resolve(el);
       }
@@ -162,7 +164,7 @@ const _ = (function utils() {
       }, timeout);
       observer = new MutationObserver(() => {
         if (!done) {
-          const elem = options.parent ? _get(selector, options.parent) : _get(selector);
+          const elem = options.parent ? get(selector, options.parent) : get(selector);
           if (options.all ? elem.length : elem) {
             done = true;
             clearTimeout(timeoutTimer);
@@ -216,7 +218,9 @@ const _ = (function utils() {
         return _.waitForSelector(target, options);
       }
       if (typeof target === 'number') {
-        return new Promise(resolve => setTimeout(resolve, target));
+        return new Promise((resolve) => {
+          setTimeout(resolve, target);
+        });
       }
       if (typeof target === 'function') {
         return _.waitForFunction(target, options, ...args);
@@ -224,11 +228,7 @@ const _ = (function utils() {
       return Promise.reject(new Error(`Unsupported target type: ${typeof target}`));
     },
     isInputActive() {
-      return (
-        document.activeElement
-        && (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)
-          || document.activeElement.isContentEditable)
-      );
+      return document.activeElement && (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable);
     },
     has(object, key) {
       return Object.prototype.hasOwnProperty.call(object, key);
@@ -236,7 +236,7 @@ const _ = (function utils() {
     hasAll(object, keys) {
       if (object != null) {
         const objKeys = Object.keys(object);
-        return keys.every(k => objKeys.includes(k));
+        return keys.every((k) => objKeys.includes(k));
       }
       return false;
     },
@@ -273,11 +273,9 @@ const _ = (function utils() {
     toURI(url, params) {
       const str = url + (url.includes('?') ? '&' : '?');
       return (
-        str
-        + Object.keys(params)
-          .map(
-            key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key]).replace(/%20/g, '+')}`
-          )
+        str +
+        Object.keys(params)
+          .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key]).replace(/%20/g, '+')}`)
           .join('&')
       );
     },
@@ -290,7 +288,7 @@ const _ = (function utils() {
         "'": '&#39;',
         '/': '&#x2F;',
       };
-      return String(string).replace(/[&<>"'/]/g, s => entityMap[s]);
+      return String(string).replace(/[&<>"'/]/g, (s) => entityMap[s]);
     },
     removeHTMLExternals(html) {
       let resp = html;
@@ -338,9 +336,7 @@ const _ = (function utils() {
     // LOGGER
     logger(prefixes) {
       const prefixArray = typeof prefixes === 'string' ? [prefixes] : prefixes;
-      const prefixString = prefixArray
-        ? prefixArray.map(prefix => `%c ${prefix} %c`).join(' ')
-        : null;
+      const prefixString = prefixArray ? prefixArray.map((prefix) => `%c ${prefix} %c`).join(' ') : null;
       const prefixColors = [];
       if (prefixString) {
         prefixArray.forEach((prefix) => {
@@ -404,31 +400,12 @@ const _ = (function utils() {
         },
       };
     },
-    cachedAjax(
-      storeKey,
-      url,
-      {
-        attrs = {},
-        parse = r => r,
-        isStale = () => false,
-        storeFormat = r => r,
-        cacheLength = 3600000,
-        logger,
-      } = {}
-    ) {
-      const ajaxLogger = logger
-        ? logger.push(`cached [${storeKey}]`)
-        : _.logger(`cached [${storeKey}]`);
+    cachedAjax(storeKey, url, { attrs = {}, parse = (r) => r, isStale = () => false, storeFormat = (r) => r, cacheLength = 3600000, logger } = {}) {
+      const ajaxLogger = logger ? logger.push(`cached [${storeKey}]`) : _.logger(`cached [${storeKey}]`);
       return new Promise((resolve, reject) => {
         ajaxLogger.debug('started');
         const stored = _.getJSON(storeKey);
-        if (
-          !stored
-          || !stored.data
-          || !stored.cacheTime
-          || Date.now() - stored.cacheTime > cacheLength
-          || isStale(stored)
-        ) {
+        if (!stored || !stored.data || !stored.cacheTime || Date.now() - stored.cacheTime > cacheLength || isStale(stored)) {
           _.ajax(url, { attrs, logger: ajaxLogger })
             .send()
             .then((response) => {
@@ -467,5 +444,16 @@ const _ = (function utils() {
         }
       });
     },
+    // gets classes from element that are valid for use as a css selector without escaping
+    getValidElementClasses(element) {
+      const regex = /^[a-z_]+[a-z0-9_-]*$/i;
+      const classList = Array.from(element.classList);
+      return classList.filter((c) => c.length > 2 && regex.test(c));
+    },
+    // gets id from element that is valid for use as a css selector without escaping
+    getValidElementId(element) {
+      const regex = /^[a-z_]+[a-z0-9_-]*$/i;
+      return element.id && element.id.length > 2 && regex.test(element.id) ? element.id : '';
+    },
   };
-}());
+})();

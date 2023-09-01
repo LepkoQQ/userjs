@@ -473,7 +473,6 @@ const VideoScroller = (function createVideoScroller() {
           newZoom = increase ? newZoom + step : newZoom - step;
         }
         if (newZoom > 0) {
-          video.style.transform = `scale(${newZoom})`;
           this.currentZoom = newZoom;
         }
         if (this.zoomTextElement) {
@@ -513,7 +512,40 @@ const VideoScroller = (function createVideoScroller() {
       const zoom = this.currentZoom || 1;
       const pan = this.currentPan || '0 / 0';
       const [panX, panY] = pan.split(' / ');
-      video.style.transform = `translate(${panX}%, ${panY}%) scale(${zoom})`;
+
+      function getGoodClasses(element) {
+        return _.getValidElementClasses(element).filter((c) => !c.includes('plyr--'));
+      }
+
+      let selector = 'video';
+      const videoId = _.getValidElementId(video);
+      if (videoId) {
+        selector += `#${video.id}`;
+      }
+      const videoClasses = getGoodClasses(video);
+      if (videoClasses.length) {
+        selector += `.${videoClasses.join('.')}`;
+      }
+
+      let parent = video.parentElement;
+      while (parent && parent !== document.body) {
+        const parentId = _.getValidElementId(parent);
+        const parentClasses = getGoodClasses(parent);
+        if (parentId || parentClasses.length) {
+          const parentSelector = parent.id ? `#${parentId}` : `.${parentClasses.join('.')}`;
+          selector = `${parentSelector} ${selector}`;
+        }
+        parent = parent.parentElement;
+      }
+
+      const css = `
+        ${selector} {
+          transform: translate(${panX}%, ${panY}%) scale(${zoom}) !important;
+        }
+      `;
+
+      const style = _.getOrCreateStyle('video_transform');
+      style.textContent = css;
     }
 
     onScrollPlayer(event) {
