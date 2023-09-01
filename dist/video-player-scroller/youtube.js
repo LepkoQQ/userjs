@@ -153,7 +153,7 @@
             if (!scrollers.has(element)) {
               const vs = new VideoScroller(element, scrollerOptions);
               scrollers.set(element, vs);
-              stopAutoplay(element);
+              // stopAutoplay(element);
             }
           }
         });
