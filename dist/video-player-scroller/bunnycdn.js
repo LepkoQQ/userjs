@@ -6,9 +6,9 @@
   let videoScroller;
 
   const scrollerOptions = {
-    color: '#1261fe',
+    color: '#ff7755',
     getBottomOffset() {
-      return 55;
+      return 80;
     },
     getLeftOffset() {
       return 10;
