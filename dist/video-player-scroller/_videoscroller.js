@@ -82,6 +82,9 @@ const VideoScroller = (function createVideoScroller() {
       z-index: 2147483647 !important;
       background: black !important;
     }
+    .ext_expand_to_fullscreen video {
+      background: black !important;
+    }
   `);
 
   const DEFAULT_OPTIONS = {
