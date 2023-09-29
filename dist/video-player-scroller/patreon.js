@@ -61,7 +61,7 @@
       NodeFilter.SHOW_ELEMENT,
       (node) => {
         const cs = window.getComputedStyle(node);
-        if (cs['max-width'] === '66.6667%' && cs['flex-basis'] === '66.6667%') {
+        if (cs['grid-column-end'] === 'span 2') {
           return NodeFilter.FILTER_ACCEPT;
         }
         return NodeFilter.FILTER_SKIP;
@@ -70,8 +70,7 @@
     );
     // eslint-disable-next-line no-cond-assign
     while ((currentNode = treeWalker.nextNode())) {
-      currentNode.style['max-width'] = '100%';
-      currentNode.style['flex-basis'] = '100%';
+      currentNode.style['grid-column-end'] = 'span 3';
     }
   }
 
