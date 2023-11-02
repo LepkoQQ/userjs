@@ -12,10 +12,10 @@
     BUFFERING: 3,
     CUED: 5,
   };
-  const YTPlayerStateString = (state) => {
-    const [key] = Object.entries(YTPlayerState).find(([, value]) => value === state);
-    return key || `UNKNOWN (${state})`;
-  };
+  // const YTPlayerStateString = (state) => {
+  //   const [key] = Object.entries(YTPlayerState).find(([, value]) => value === state);
+  //   return key || `UNKNOWN (${state})`;
+  // };
 
   const scrollerOptions = {
     color: '#f00',
@@ -87,30 +87,30 @@
     },
   };
 
-  function stopAutoplay(player) {
-    // On first load it sometimes says it's PLAYING, when its actually BUFFERING.
-    // If you call pauseVideo at that time, it will change state to PAUSE, however when it stops buffering,
-    // it will change to PLAYING again, so we need pause in onStateChange when new state is PLAYING.
-    const state = player.getPlayerState();
-    LOGGER.log('stop autoplay called; state =', YTPlayerStateString(state));
-    const onStateChange = (newState) => {
-      console.log('state changed; state =', YTPlayerStateString(newState));
-      if (newState === YTPlayerState.PLAYING) {
-        console.log('trying to pause');
-        player.pauseVideo();
-        player.removeEventListener('onStateChange', onStateChange);
-      }
-    };
-    player.addEventListener('onStateChange', onStateChange);
-    player.pauseVideo();
+  // function stopAutoplay(player) {
+  //   // On first load it sometimes says it's PLAYING, when its actually BUFFERING.
+  //   // If you call pauseVideo at that time, it will change state to PAUSE, however when it stops buffering,
+  //   // it will change to PLAYING again, so we need pause in onStateChange when new state is PLAYING.
+  //   const state = player.getPlayerState();
+  //   LOGGER.log('stop autoplay called; state =', YTPlayerStateString(state));
+  //   const onStateChange = (newState) => {
+  //     console.log('state changed; state =', YTPlayerStateString(newState));
+  //     if (newState === YTPlayerState.PLAYING) {
+  //       console.log('trying to pause');
+  //       player.pauseVideo();
+  //       player.removeEventListener('onStateChange', onStateChange);
+  //     }
+  //   };
+  //   player.addEventListener('onStateChange', onStateChange);
+  //   player.pauseVideo();
 
-    // const onClick = () => {
-    //   LOGGER.log('user clicked; removing state change listener');
-    //   player.removeEventListener('onStateChange', onPlayerStateChange);
-    //   document.removeEventListener('click', onClick);
-    // };
-    // document.addEventListener('click', onClick);
-  }
+  //   // const onClick = () => {
+  //   //   LOGGER.log('user clicked; removing state change listener');
+  //   //   player.removeEventListener('onStateChange', onPlayerStateChange);
+  //   //   document.removeEventListener('click', onClick);
+  //   // };
+  //   // document.addEventListener('click', onClick);
+  // }
 
   // async function onNavigateFinish(page, event) {
   //   if (['watch', 'embed', 'channel'].includes(page)) {
