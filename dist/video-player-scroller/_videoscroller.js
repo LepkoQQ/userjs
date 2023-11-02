@@ -219,6 +219,7 @@ const VideoScroller = (function createVideoScroller() {
       }
 
       // add key shortcuts
+      this.wasKeyDown = {};
       this.onKeyDown = this.onKeyDown.bind(this);
       this.onKeyUp = this.onKeyUp.bind(this);
       window.addEventListener('keydown', this.onKeyDown, true);
@@ -285,9 +286,6 @@ const VideoScroller = (function createVideoScroller() {
           if (this.options.playOrPause(this.player)) {
             event.preventDefault();
             event.stopPropagation();
-            if (event.code === 'KeyK') {
-              this.wasKeyKDown = true;
-            }
           }
           break;
         }
@@ -340,14 +338,27 @@ const VideoScroller = (function createVideoScroller() {
         default:
           break;
       }
+
+      this.wasKeyDown[event.code] = true;
     }
 
     onKeyUp(event) {
-      if (event.code === 'KeyK' && this.wasKeyKDown) {
-        event.preventDefault();
-        event.stopPropagation();
-        this.wasKeyKDown = false;
+      if (_.isInputActive()) return;
+
+      switch (event.code) {
+        case 'Space':
+        case 'KeyK': {
+          if (this.wasKeyDown[event.code]) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          break;
+        }
+        default:
+          break;
       }
+
+      this.wasKeyDown[event.code] = false;
     }
 
     updateProgress() {
