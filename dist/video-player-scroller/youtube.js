@@ -49,7 +49,7 @@
       return newVolume;
     },
     setPlaybackRate(player, value) {
-      const video = _.get('video', player);
+      const video = this.getVideoElement(player);
       const rates = player.getAvailablePlaybackRates();
       const index = rates.indexOf(value);
       if (index !== -1) {

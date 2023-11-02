@@ -90,6 +90,9 @@ const VideoScroller = (function createVideoScroller() {
   const DEFAULT_OPTIONS = {
     logger: undefined,
     color: '#000',
+    getVideoElement(player) {
+      return _.get('video', player);
+    },
     getVolumeWheelElement(player) {
       return player;
     },
@@ -111,12 +114,12 @@ const VideoScroller = (function createVideoScroller() {
       return this.getLeftOffset(player);
     },
     getVolume(player) {
-      const video = _.get('video', player);
+      const video = this.getVideoElement(player);
       return video.muted ? 0 : video.volume * 100;
     },
     changeVolume(player, increase) {
       const step = 0.05;
-      const video = _.get('video', player);
+      const video = this.getVideoElement(player);
       const volume = video.muted ? 0 : video.volume;
       const newVolume = Math.max(Math.min(increase ? volume + step : volume - step, 1), 0);
       if (newVolume > 0) {
@@ -126,26 +129,26 @@ const VideoScroller = (function createVideoScroller() {
       return newVolume * 100;
     },
     getPlaybackRate(player) {
-      const video = _.get('video', player);
+      const video = this.getVideoElement(player);
       return video.playbackRate;
     },
     setPlaybackRate(player, value) {
-      const video = _.get('video', player);
+      const video = this.getVideoElement(player);
       video.playbackRate = value;
     },
     getProgressContainerElement(player) {
       return player;
     },
     getVideoDuration(player) {
-      const video = _.get('video', player);
+      const video = this.getVideoElement(player);
       return video.duration;
     },
     getCurrentTime(player) {
-      const video = _.get('video', player);
+      const video = this.getVideoElement(player);
       return video.currentTime;
     },
     getCurrentBuffer(player) {
-      const video = _.get('video', player);
+      const video = this.getVideoElement(player);
       for (let i = 0; i < video.buffered.length; i += 1) {
         const start = video.buffered.start(i);
         const end = video.buffered.end(i);
@@ -156,11 +159,11 @@ const VideoScroller = (function createVideoScroller() {
       return 0;
     },
     isPaused(player) {
-      const video = _.get('video', player);
+      const video = this.getVideoElement(player);
       return video.paused;
     },
     playOrPause(player) {
-      const video = _.get('video', player);
+      const video = this.getVideoElement(player);
       if (video.paused) {
         video.play();
       } else {
@@ -171,7 +174,7 @@ const VideoScroller = (function createVideoScroller() {
     seekVideo(player, event) {
       const step = VideoScroller.getStepSizeFromKeyEvent(event);
       if (step !== 0) {
-        const video = _.get('video', player);
+        const video = this.getVideoElement(player);
         const playerTime = video.currentTime;
         if (playerTime) {
           video.currentTime = playerTime + step;
@@ -180,13 +183,13 @@ const VideoScroller = (function createVideoScroller() {
       }
       return false;
     },
-    addTimeUpdateEventListener(player, func) {
-      const video = _.get('video', player);
+    addTimeUpdateEventListener(player, func, videoElement) {
+      const video = videoElement || this.getVideoElement(player);
       video.addEventListener('timeupdate', func);
       video.addEventListener('progress', func);
     },
-    removeTimeUpdateEventListener(player, func) {
-      const video = _.get('video', player);
+    removeTimeUpdateEventListener(player, func, videoElement) {
+      const video = videoElement || this.getVideoElement(player);
       video.removeEventListener('timeupdate', func);
       video.removeEventListener('progress', func);
     },
@@ -198,6 +201,9 @@ const VideoScroller = (function createVideoScroller() {
       this.player = player;
       this.options = { ...DEFAULT_OPTIONS, ...options };
       this.options.logger = this.options.logger ? this.options.logger.push('scroller') : _.logger('scroller');
+
+      // cache video element so we can track if it changes
+      this.cachedVideoElement = this.options.getVideoElement(this.player);
 
       // scroll player area to control volume
       this.volumeWheelElement = this.options.getVolumeWheelElement(this.player);
@@ -278,6 +284,8 @@ const VideoScroller = (function createVideoScroller() {
     }
 
     onKeyDown(event) {
+      this.checkIfVideoElementChanged();
+
       if (_.isInputActive()) return;
 
       switch (event.code) {
@@ -475,7 +483,7 @@ const VideoScroller = (function createVideoScroller() {
     changeZoom({ reset = false, increase = true } = {}) {
       if (this.player) {
         const step = 0.05;
-        const video = _.get('video', this.player);
+        const video = this.options.getVideoElement(this.player);
         const zoom = this.currentZoom || 1;
         let newZoom = zoom;
         if (reset) {
@@ -496,7 +504,7 @@ const VideoScroller = (function createVideoScroller() {
 
     changePan({ reset = false, negative = true, direction = 'vertical' } = {}) {
       if (this.player) {
-        const video = _.get('video', this.player);
+        const video = this.options.getVideoElement(this.player);
         const step = 1;
         const pan = this.currentPan || '0 / 0';
         const [panX, panY] = pan.split(' / ');
@@ -576,7 +584,21 @@ const VideoScroller = (function createVideoScroller() {
       setTimeout(() => this.showVideoOverlayElements(), 0);
     }
 
+    checkIfVideoElementChanged() {
+      const videoElement = this.options.getVideoElement(this.player);
+      if (videoElement !== this.cachedVideoElement) {
+        this.options.logger.log('video element changed');
+        if (this.progressContainerElement) {
+          this.options.removeTimeUpdateEventListener(this.player, this.updateProgress, this.cachedVideoElement);
+          this.options.addTimeUpdateEventListener(this.player, this.updateProgress, videoElement);
+        }
+        this.cachedVideoElement = videoElement;
+      }
+    }
+
     showVideoOverlayElements() {
+      this.checkIfVideoElementChanged();
+
       const container = this.progressContainerElement || this.player;
       const rightOffset = this.options.getRightOffset(this.player);
       const bottomOffset = this.options.getBottomOffset(this.player);
