@@ -76,6 +76,9 @@ const VideoScroller = (function createVideoScroller() {
     .ext_extra_data_container > div:hover {
       background: rgba(25,25,0,0.5);
     }
+    body.ext_contains_expand_to_fullscreen {
+      overflow: hidden !important;
+    }
     .ext_expand_to_fullscreen {
       position: fixed !important;
       inset: 0 !important;
@@ -445,18 +448,42 @@ const VideoScroller = (function createVideoScroller() {
       if (!fsElement) {
         return;
       }
-      fsElement.classList.toggle('ext_expand_to_fullscreen');
+      if (fsElement.classList.contains('ext_expand_to_fullscreen')) {
+        fsElement.classList.remove('ext_expand_to_fullscreen');
+        document.body.classList.remove('ext_contains_expand_to_fullscreen');
 
-      // Fix "position: fixed" inside 3d transformed elements
-      let el = fsElement;
-      while (el) {
-        if (getComputedStyle(el).transformStyle !== 'flat') {
-          el.style.transformStyle = 'flat';
+        // Restore styles that were changed when expanding to fullscreen
+        let el = fsElement;
+        while (el) {
+          if (el.style.transformStyle) {
+            el.style.transformStyle = '';
+          }
+          if (el.style.transform) {
+            el.style.transform = '';
+          }
+          if (el !== fsElement && el.style.position) {
+            el.style.position = '';
+          }
+          el = el.parentElement;
         }
-        if (getComputedStyle(el).transform !== 'none') {
-          el.style.transform = 'none';
+      } else {
+        fsElement.classList.add('ext_expand_to_fullscreen');
+        document.body.classList.add('ext_contains_expand_to_fullscreen');
+
+        // Fix "position: fixed" inside 3d transformed elements
+        let el = fsElement;
+        while (el) {
+          if (getComputedStyle(el).transformStyle !== 'flat') {
+            el.style.transformStyle = 'flat';
+          }
+          if (getComputedStyle(el).transform !== 'none') {
+            el.style.transform = 'none';
+          }
+          if (el !== fsElement && getComputedStyle(el).position !== 'static') {
+            el.style.position = 'static';
+          }
+          el = el.parentElement;
         }
-        el = el.parentElement;
       }
     }
 
