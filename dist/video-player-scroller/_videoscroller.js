@@ -268,8 +268,8 @@ const VideoScroller = (function createVideoScroller() {
       this.progressFillElement = null;
       this.progressFillBufferElement = null;
 
-      document.removeEventListener('keydown', this.onKeyDown, true);
-      document.removeEventListener('keyup', this.onKeyUp, true);
+      window.removeEventListener('keydown', this.onKeyDown, true);
+      window.removeEventListener('keyup', this.onKeyUp, true);
 
       this.destroyed = true;
 
