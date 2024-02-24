@@ -146,12 +146,14 @@
             max-height: unset !important;
           }
 
-          #player-full-bleed-container {
+          ytd-watch-grid[full-bleed-player] #player-full-bleed-container {
             max-height: 720px !important;
           }
-          #player-full-bleed-container video.html5-main-video {
-            height: 720px !important;
+          ytd-watch-grid[fullscreen] #player-full-bleed-container {
+            height: 100vh !important;
+            max-height: none !important;
           }
+
           ytd-watch-grid[full-bleed-player] #columns #primary.ytd-watch-grid {
             display: none;
           }
