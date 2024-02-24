@@ -145,6 +145,21 @@
             display: block !important;
             max-height: unset !important;
           }
+
+          #player-full-bleed-container {
+            max-height: 720px !important;
+          }
+          #player-full-bleed-container video.html5-main-video {
+            height: 720px !important;
+          }
+          ytd-watch-grid[full-bleed-player] #columns #primary.ytd-watch-grid {
+            display: none;
+          }
+          ytd-watch-grid[full-bleed-player] #columns #secondary.ytd-watch-grid {
+            width: 100%;
+            margin-left: 32px;
+            margin-right: 32px;
+          }
         `);
 
         const playerSelector = '#player:not(.skeleton) .html5-video-player, #container .html5-video-player';
