@@ -267,7 +267,7 @@
           .video-player__inactive .ext_progress_bar {
             opacity: 1;
           }
-          body .tw-media-card-image__cover .tw-progress-bar {
+          body .video-media-card__progress-bar-wrapper .tw-progress-bar {
             height: 4rem;
           }
         `);
