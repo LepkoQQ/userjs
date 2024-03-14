@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 /* eslint-disable no-underscore-dangle */
 /* global _:false */
 
@@ -9,11 +10,7 @@ const ReactHook = (function createReactHook() {
   const ensureNotWrapped = (Component, wrapped) => {
     if (wrappedComponents.has(Component)) {
       const other = wrappedComponents.get(Component);
-      throw new Error(
-        `WrappedComponent(${wrapped.name}) tried to wrap the same Component as WrappedComponent(${
-          other.name
-        })`
-      );
+      throw new Error(`WrappedComponent(${wrapped.name}) tried to wrap the same Component as WrappedComponent(${other.name})`);
     }
     wrappedComponents.set(Component, wrapped);
     return Component;
@@ -33,7 +30,7 @@ const ReactHook = (function createReactHook() {
         if (typeof func === 'function') {
           if (key === 'componentDidMount') {
             this._instances
-              .filter(i => this._hookInstance.getDOMElement(i) != null)
+              .filter((i) => this._hookInstance.getDOMElement(i) != null)
               .forEach((instance) => {
                 func.apply(instance);
               });
@@ -84,7 +81,7 @@ const ReactHook = (function createReactHook() {
         }
         if (object instanceof Node) {
           if (this._reactKey == null) {
-            this._reactKey = Object.keys(object).find(key => key.startsWith('__reactInternalInstance$'));
+            this._reactKey = Object.keys(object).find((key) => key.startsWith('__reactInternalInstance$'));
           }
           if (this._reactKey != null && _.has(object, this._reactKey)) {
             return object[this._reactKey];
@@ -109,10 +106,7 @@ const ReactHook = (function createReactHook() {
       return null;
     }
 
-    _searchForComponent(
-      { predicate, parent = this._reactInstance } = {},
-      state = { depth: 0, matchedComponent: null, instances: [] }
-    ) {
+    _searchForComponent({ predicate, parent = this._reactInstance } = {}, state = { depth: 0, matchedComponent: null, instances: [] }) {
       // eslint-disable-next-line no-param-reassign
       parent = this._getReactInstance(parent);
 
@@ -124,7 +118,7 @@ const ReactHook = (function createReactHook() {
         };
       }
 
-      state.depth++;
+      state.depth += 1;
 
       const instance = parent.stateNode;
 
@@ -169,10 +163,8 @@ const ReactHook = (function createReactHook() {
         return;
       }
 
-      for (let i = this._mutationObserverPredicates.length - 1; i >= 0; i--) {
-        const {
-          name, predicate, resolve, reject,
-        } = this._mutationObserverPredicates[i];
+      for (let i = this._mutationObserverPredicates.length - 1; i >= 0; i -= 1) {
+        const { name, predicate, resolve, reject } = this._mutationObserverPredicates[i];
         try {
           const { instances, matchedComponent } = this._searchForComponent({
             predicate,
@@ -242,4 +234,4 @@ const ReactHook = (function createReactHook() {
       return instance;
     },
   };
-}());
+})();
