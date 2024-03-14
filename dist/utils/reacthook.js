@@ -57,7 +57,7 @@ const ReactHook = (function createReactHook() {
   class ReactHook {
     constructor() {
       this._rootElement = null;
-      this._reactKey = null;
+      this._reactRandomKey = null;
       this._reactInstance = null;
 
       this._mutationObserver = null;
@@ -67,24 +67,25 @@ const ReactHook = (function createReactHook() {
 
     async _init(rootSelector) {
       this._rootElement = await _.waitFor(() => _.get(rootSelector));
-      let reactRootContainer = await _.waitFor(() => this._rootElement._reactRootContainer);
-      if (reactRootContainer._internalRoot && reactRootContainer._internalRoot.current) {
-        reactRootContainer = reactRootContainer._internalRoot;
+      this._reactInstance = await _.waitFor(() => this._getReactRootInstance());
+      console.log('+++', this._reactInstance);
+    }
+
+    _getReactRootInstance() {
+      const reactContainerKey = Object.keys(this._rootElement).find((key) => key.startsWith('__reactContainer$'));
+      if (reactContainerKey) {
+        this._reactRandomKey = reactContainerKey.replace('__reactContainer$', '');
+        return this._rootElement[reactContainerKey];
       }
-      this._reactInstance = reactRootContainer.current.child;
+      return null;
     }
 
     _getReactInstance(object) {
       if (object != null) {
-        if (object._reactInternalFiber) {
-          return object._reactInternalFiber;
-        }
         if (object instanceof Node) {
-          if (this._reactKey == null) {
-            this._reactKey = Object.keys(object).find((key) => key.startsWith('__reactInternalInstance$'));
-          }
-          if (this._reactKey != null && _.has(object, this._reactKey)) {
-            return object[this._reactKey];
+          const reactKey = `__reactFiber$${this._reactRandomKey}`;
+          if (_.has(object, reactKey)) {
+            return object[reactKey];
           }
         }
       }
