@@ -241,22 +241,6 @@
         LOGGER.log('started');
 
         _.addCSS(`
-          .__ext__speed_element_pill {
-            color: #000;
-            background-color: hsl(264deg 100% 80% / 75%);
-            display: inline-block;
-            position: relative;
-            line-height: 1;
-            text-align: center;
-            white-space: nowrap;
-            bottom: 0.15em;
-            border-radius: 1000px;
-            padding: 0.3rem 0.8em;
-            font-size: 75%;
-            text-transform: uppercase !important;
-            font-weight: 600 !important;
-            margin-right: 0.5em;
-          }
           .ext_progress_bar {
             opacity: 0;
             background-color: hsla(0,0%,100%,.35);
