@@ -68,24 +68,53 @@ const ReactHook = (function createReactHook() {
     async _init(rootSelector) {
       this._rootElement = await _.waitFor(() => _.get(rootSelector));
       this._reactInstance = await _.waitFor(() => this._getReactRootInstance());
-      console.log('+++', this._reactInstance);
     }
 
     _getReactRootInstance() {
-      const reactContainerKey = Object.keys(this._rootElement).find((key) => key.startsWith('__reactContainer$'));
-      if (reactContainerKey) {
-        this._reactRandomKey = reactContainerKey.replace('__reactContainer$', '');
-        return this._rootElement[reactContainerKey];
+      if (this._rootElement?._reactRootContainer?._internalRoot?.current) {
+        return this._rootElement?._reactRootContainer?._internalRoot?.current;
       }
+
+      const rootKeys = Object.keys(this._rootElement);
+      let rootKey = rootKeys.find((key) => key.startsWith('__reactContainer$'));
+      if (!rootKey) {
+        rootKey = rootKeys.find((key) => key.startsWith('__reactContainere$'));
+      }
+      if (rootKey) {
+        const splitIndex = rootKey.indexOf('$');
+        this._reactRandomKey = rootKey.slice(splitIndex + 1);
+        return this._rootElement[rootKey];
+      }
+
       return null;
     }
 
     _getReactInstance(object) {
       if (object != null) {
+        if (object._reactInternalFiber) {
+          return object._reactInternalFiber;
+        }
         if (object instanceof Node) {
-          const reactKey = `__reactFiber$${this._reactRandomKey}`;
-          if (_.has(object, reactKey)) {
-            return object[reactKey];
+          if (!this._reactRandomKey) {
+            const keys = Object.keys(object);
+            let key = keys.find((k) => k.startsWith('__reactInternalInstance$'));
+            if (!key) {
+              key = keys.find((k) => k.startsWith('__reactFiber$'));
+            }
+            if (key) {
+              const splitIndex = key.indexOf('$');
+              this._reactRandomKey = key.slice(splitIndex + 1);
+            }
+          }
+          if (this._reactRandomKey) {
+            let reactKey = `__reactInternalInstance$${this._reactRandomKey}`;
+            if (_.has(object, reactKey)) {
+              return object[reactKey];
+            }
+            reactKey = `__reactFiber$${this._reactRandomKey}`;
+            if (_.has(object, reactKey)) {
+              return object[reactKey];
+            }
           }
         }
       }
