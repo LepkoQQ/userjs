@@ -2,19 +2,19 @@
 // @name        Video Player Scroller
 // @description Add more controls to video players
 // @namespace   http://poglej.ga/
-// @version     4.6.5
+// @version     4.6.6
 // @run-at      document-idle
 // @match       *://*/*
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/8cc7e5129c34b7867c1d8f9ffd2fa4e8d52733e8/dist/utils/utils.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/8cc7e5129c34b7867c1d8f9ffd2fa4e8d52733e8/dist/utils/reacthook.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/8cc7e5129c34b7867c1d8f9ffd2fa4e8d52733e8/dist/video-player-scroller/_videoscroller.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/8cc7e5129c34b7867c1d8f9ffd2fa4e8d52733e8/dist/video-player-scroller/bunnycdn.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/8cc7e5129c34b7867c1d8f9ffd2fa4e8d52733e8/dist/video-player-scroller/dropbox.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/8cc7e5129c34b7867c1d8f9ffd2fa4e8d52733e8/dist/video-player-scroller/patreon.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/8cc7e5129c34b7867c1d8f9ffd2fa4e8d52733e8/dist/video-player-scroller/twitch.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/8cc7e5129c34b7867c1d8f9ffd2fa4e8d52733e8/dist/video-player-scroller/vidyard.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/8cc7e5129c34b7867c1d8f9ffd2fa4e8d52733e8/dist/video-player-scroller/vimeo.js
-// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/8cc7e5129c34b7867c1d8f9ffd2fa4e8d52733e8/dist/video-player-scroller/youtube.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/7679db715c44d0f61baa9ee4c45582634cc412a9/dist/utils/utils.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/7679db715c44d0f61baa9ee4c45582634cc412a9/dist/utils/reacthook.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/7679db715c44d0f61baa9ee4c45582634cc412a9/dist/video-player-scroller/_videoscroller.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/7679db715c44d0f61baa9ee4c45582634cc412a9/dist/video-player-scroller/bunnycdn.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/7679db715c44d0f61baa9ee4c45582634cc412a9/dist/video-player-scroller/dropbox.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/7679db715c44d0f61baa9ee4c45582634cc412a9/dist/video-player-scroller/patreon.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/7679db715c44d0f61baa9ee4c45582634cc412a9/dist/video-player-scroller/twitch.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/7679db715c44d0f61baa9ee4c45582634cc412a9/dist/video-player-scroller/vidyard.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/7679db715c44d0f61baa9ee4c45582634cc412a9/dist/video-player-scroller/vimeo.js
+// @require     https://raw.githubusercontent.com/LepkoQQ/userjs/7679db715c44d0f61baa9ee4c45582634cc412a9/dist/video-player-scroller/youtube.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
