@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        AniList Watch Link
 // @namespace   http://lepko.net/
-// @version     1.0.0
+// @version     1.0.1
 // @run-at      document-start
 // @match       https://anilist.co/anime/*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.2/purify.min.js
@@ -16,7 +16,9 @@
 (function main() {
   'use strict';
 
-  const BASE_WATCH_URL = 'https://9anime.pl';
+  const BASE_WATCH_URL = 'https://aniwave.to';
+  const FAVICON_URL =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACCklEQVQ4T6WTX0iTURjGf5+y1VrTtebW2FAztcyt0UVBQTcyJWRUVxHWVXgZlGADC6pJ3WhBEkJ3dWUQCELQ8mJRFEZelDGKapuL2ND5b5aOza3NvrPayGpq9MHh47zP+/wO55znSIBksVg65f9ZeZjlsZ4vIjf1hcPh68J8Xp70CJd6QwXxpen1API9LgEIi5X1mjqarF3cf3H6XwARAVgWjharm3pTMwMjJ5mLhwqQEqmU7HKmKDQH2KTU4Wi8RLnKTHDqCSOB/pxBkko4bL2Gx9e1OuCHKrF/ezv1hhYGRtvkVdMYyho4sucmQ2NnmFn0YyxrRKuq5EPUUwAWtiAqenUdTusNngZ6Cc0+Y6/lFHbzcQLTXp6P93HUdoss33jg6/g7QFSP2fpZSEbx+rtpbehBp64hk00x/P4irbt7eRO5h29isDjAbjrBrgon3oAbR+0VZhNBtqp2sJiKsllp5OFHF1+TIgY/N56/hXxBu7EKR81lEuk5VAodj0NX2WduR6PcxkJqkuHAhRUHuuIM8oqjuhu1wkA6G8cT7KSq/BB2Qxv+2CPezQytDdi5xUmttpmJ+Bivpu5QKiloqnQzOnmbL0uf1wZoFCYOGjt4GxskHH+ZMxhVNqIJ3x95KET5d+WA/hyvY3dJZuaLhkgWclEuPKZfO7WKaubTn1YzC80liQj+z3P+DoMqsFPuTbm4AAAAAElFTkSuQmCC';
 
   async function waitForElement(selector) {
     let promiseResolve;
@@ -44,13 +46,13 @@
     clone.href = '#';
 
     const icon = document.createElement('img');
-    icon.src = 'https://s2.bunnycdn.ru/assets/sites/9anime/icons/favicon.png';
+    icon.src = FAVICON_URL;
     icon.className = 'icon svg-inline--fa fa-w-18 fa-xs';
     clone.querySelector('svg').replaceWith(icon);
 
     const text = clone.querySelector('.rank-text');
     text.style.textTransform = 'none';
-    text.innerText = 'Watch on 9anime';
+    text.innerText = 'Watch on AniWave';
 
     rankings.insertBefore(clone, rankings.firstElementChild);
 
