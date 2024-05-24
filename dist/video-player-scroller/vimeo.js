@@ -58,7 +58,11 @@
     });
   }
 
-  if (context.vpsSite == null && window.location.host.match(/(?:\.|^)vimeo\.com$/) && !window.location.pathname.endsWith('proxy.html')) {
+  if (
+    context.vpsSite == null &&
+    (window.location.host.match(/(?:\.|^)vimeo\.com$/) || window.location.host === 'embed.vhx.tv') &&
+    !window.location.pathname.endsWith('proxy.html')
+  ) {
     context.vpsSite = {
       init(logger) {
         LOGGER = logger.push('vimeo');
@@ -74,7 +78,7 @@
           }
         `);
 
-        if (window.location.hostname === 'player.vimeo.com') {
+        if (['player.vimeo.com', 'embed.vhx.tv'].includes(window.location.host)) {
           LOGGER.log('embed');
           onRouteChange();
         } else {
