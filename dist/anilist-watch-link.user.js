@@ -1,10 +1,9 @@
 // ==UserScript==
 // @name        AniList Watch Link
 // @namespace   http://lepko.net/
-// @version     1.0.1
+// @version     1.1.0
 // @run-at      document-start
 // @match       https://anilist.co/anime/*
-// @require     https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.2/purify.min.js
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -12,13 +11,15 @@
 // @nocompat    Chrome
 // ==/UserScript==
 
-/* global GM_xmlhttpRequest, DOMPurify */
+/* global GM_xmlhttpRequest, unsafeWindow */
 (function main() {
   'use strict';
 
-  const BASE_WATCH_URL = 'https://aniwave.to';
+  const WATCH_NAME = 'Anicrush';
+  const BASE_WATCH_URL = 'https://anicrush.to';
+  const BASE_API_URL = 'https://api.anicrush.to';
   const FAVICON_URL =
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACCklEQVQ4T6WTX0iTURjGf5+y1VrTtebW2FAztcyt0UVBQTcyJWRUVxHWVXgZlGADC6pJ3WhBEkJ3dWUQCELQ8mJRFEZelDGKapuL2ND5b5aOza3NvrPayGpq9MHh47zP+/wO55znSIBksVg65f9ZeZjlsZ4vIjf1hcPh68J8Xp70CJd6QwXxpen1API9LgEIi5X1mjqarF3cf3H6XwARAVgWjharm3pTMwMjJ5mLhwqQEqmU7HKmKDQH2KTU4Wi8RLnKTHDqCSOB/pxBkko4bL2Gx9e1OuCHKrF/ezv1hhYGRtvkVdMYyho4sucmQ2NnmFn0YyxrRKuq5EPUUwAWtiAqenUdTusNngZ6Cc0+Y6/lFHbzcQLTXp6P93HUdoss33jg6/g7QFSP2fpZSEbx+rtpbehBp64hk00x/P4irbt7eRO5h29isDjAbjrBrgon3oAbR+0VZhNBtqp2sJiKsllp5OFHF1+TIgY/N56/hXxBu7EKR81lEuk5VAodj0NX2WduR6PcxkJqkuHAhRUHuuIM8oqjuhu1wkA6G8cT7KSq/BB2Qxv+2CPezQytDdi5xUmttpmJ+Bivpu5QKiloqnQzOnmbL0uf1wZoFCYOGjt4GxskHH+ZMxhVNqIJ3x95KET5d+WA/hyvY3dJZuaLhkgWclEuPKZfO7WKaubTn1YzC80liQj+z3P+DoMqsFPuTbm4AAAAAElFTkSuQmCC';
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAiVQTFRFAAAAfFrNf1zRhF/UhWHZiGPdi2XfjmfjkWnolWvqlm7vmm/ymnDzdVTEeFbHe1nKflvOf1zSf1nTgFnXg1vbiGHfj2fkkWrolGzrl27vmW/xbU65cFG8c1PAdlXEc0/Ee1rLs57i0sbv0sTwsZjnhV7biWHgj2jlkmrplW3slm7uaEuya022bk+6ZkS5sZ/c////sJfniGDejWfikGnmkmvpZEesZkmwYkOvrp3X9/T7+fj99/T8nIDdhF7XiGPci2XgjmfjX0OlX0OoZ0uu+/r9e2DBZkO6bEi/c07Ie1fNe1bQgFvUhmHZiWTdWkCfVzugp5nOcla2Z0ezbk+5cFG9clLAdlTEcUzEybrqpYzdflrShGDWVDyZTzOWzsfi7+32VjakZkmvZUevaUqyaUe63dXwwLDmd1PKf1zQVTyZTDGTy8Xg8O32TzGdWz+hnH3jlHXcY0WtYUCxva7ick/DeljKTzWVn5DFaFKjm3zlt5b/uJf/k3Lce2S4ln/Ob0+/dlXDVDuYVDuZxKn9rIb7rIj6q4b80Lr9YUKxcVG9VTyZTjSVmYzAxaf/n3n2pYD5nHftoHrypYD4nnf20br/i3a+YkStaUuzbE22VTyZTTSTbE65oXn6i2feTjWPUDeRlW7pnnb2aEm0WT2hYUWpZEesZ0mwVTyZUzqWUjmVUTmUUjiUUTmVVTuYWT+fXEGiX0SmYkaqVTyZVTyYVz6cWkCgtQnzJwAAALd0Uk5TADHI+/////////vIMYL///////////////+CMf//////////////////Mcj////////////I+//////////////7//////////////////////////////////////////////////////////////////////////////////////////////////v/////////////////+8j////////////////IMf///////////zGC//+C14DaKQAAAKdJREFUeJxjZGBgRAJfGBgZeJEFGJ8xSjOiAW0wyQACEAEzIP7OwMDF+JUHIuDEyPiGQRTIOGYNEfBnZLzPoIRkRiwj40UDEOOkBeMpcyCdxch4xBYit5fBBSTAy7iDwRMssInBHyQgwbiWIQRoMSPjCobI02aM3feRTQSCWRcYDFEEVhxiYLBnZNzP4AQVYNi8nQEGvBgZvYC+WPHp430wX5GfL4IBAOpjIDeNvUQpAAAAAElFTkSuQmCC';
 
   async function waitForElement(selector) {
     let promiseResolve;
@@ -52,7 +53,7 @@
 
     const text = clone.querySelector('.rank-text');
     text.style.textTransform = 'none';
-    text.innerText = 'Watch on AniWave';
+    text.innerText = `Watch on ${WATCH_NAME}`;
 
     rankings.insertBefore(clone, rankings.firstElementChild);
 
@@ -69,13 +70,6 @@
     btn.style.opacity = '';
   }
 
-  function htmlToDOM(str) {
-    const cleanResponse = DOMPurify.sanitize(str, { USE_PROFILES: { html: true } });
-    const temp = document.createElement('template');
-    temp.innerHTML = cleanResponse;
-    return temp.content;
-  }
-
   function getTitleForSearch() {
     const title = document.querySelector('.header h1').innerText;
     return encodeURIComponent(title).replaceAll('%20', '+');
@@ -85,14 +79,26 @@
     const dataSets = document.querySelectorAll('.sidebar .data-set');
     const seasonDataSet = Array.from(dataSets).filter((div) => div.querySelector('.type').innerText === 'Season')[0];
     const seasonSearchParams = new URLSearchParams(seasonDataSet.querySelector('a').search);
-    return { season: seasonSearchParams.get('season').trim().toLowerCase(), year: `${Number(seasonSearchParams.get('year'))}` };
+    return { season: seasonSearchParams.get('season').trim().toLowerCase(), year: `${parseInt(seasonSearchParams.get('year'), 10)}` };
   }
 
-  function getSearchResult(responseDOM) {
-    const resultLinks = responseDOM.querySelectorAll('a.d-title');
-    const results = Array.from(resultLinks).map((a) => ({ href: a.getAttribute('href'), jpTitle: a.dataset.jp }));
-    // TODO: maybe use `fuse.js` for fuzzy matching here
-    return results[0];
+  async function getAnimeProgress() {
+    const response = await fetch('https://anilist.co/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-csrf-token': unsafeWindow.al_token,
+        schema: 'default',
+      },
+      body: JSON.stringify({
+        query: `query($mediaId:Int){Media(id:$mediaId){id mediaListEntry{progress}}}`,
+        variables: {
+          mediaId: parseInt(window.location.pathname.split('/')[2], 10),
+        },
+      }),
+    });
+    const json = await response.json();
+    return json.data.Media.mediaListEntry.progress;
   }
 
   async function onWatchClick(event) {
@@ -101,24 +107,39 @@
     const btn = event.currentTarget;
     disableButton(btn);
 
-    const baseUrl = `${BASE_WATCH_URL}/filter?country%5B%5D=120822&language%5B%5D=sub&sort=most_relevance`;
+    const baseUrl = `${BASE_API_URL}/shared/v2/movie/list?limit=24&page=1`;
     const title = getTitleForSearch();
     const seasonData = getSeasonDataForSearch();
 
     const response = await new Promise((resolve, reject) => {
       GM_xmlhttpRequest({
         method: 'GET',
-        url: `${baseUrl}&keyword=${title}&season%5B%5D=${seasonData.season}&year%5B%5D=${seasonData.year}`,
+        url: `${baseUrl}&keyword=${title}&years=${seasonData.year}`,
+        headers: {
+          Accept: 'application/json, text/plain, */*',
+          Origin: 'https://anicrush.to',
+          Referer: 'https://anicrush.to/',
+          'x-site': 'anicrush',
+        },
         onload: resolve,
         onabort: reject,
         onerror: reject,
         ontimeout: reject,
       });
     });
-    const responseDOM = htmlToDOM(response.responseText);
-    const result = getSearchResult(responseDOM);
 
-    window.open(`${BASE_WATCH_URL}${result.href}`, '_blank', 'noopener,noreferrer');
+    const json = JSON.parse(response.responseText);
+    if (json.status === true) {
+      const result = json.result.movies[0];
+      let openUrl = `${BASE_WATCH_URL}/watch/${result.slug}.${result.id}`;
+      const progress = await getAnimeProgress();
+      if (progress > 0) {
+        openUrl += `?ep=${progress + 1}`;
+      }
+      window.open(openUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      console.error('Watch Link Error', json);
+    }
 
     enableButton(btn);
   }
