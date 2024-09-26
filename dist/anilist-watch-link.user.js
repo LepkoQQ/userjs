@@ -1,12 +1,11 @@
 // ==UserScript==
 // @name        AniList Watch Link
+// @description Add watch links to anime page
 // @namespace   http://lepko.net/
-// @version     1.1.0
+// @version     1.2.0
 // @run-at      document-start
 // @match       https://anilist.co/anime/*
 // @grant       GM_xmlhttpRequest
-// @grant       GM_getValue
-// @grant       GM_setValue
 // @grant       unsafeWindow
 // @nocompat    Chrome
 // ==/UserScript==
@@ -14,12 +13,6 @@
 /* global GM_xmlhttpRequest, unsafeWindow */
 (function main() {
   'use strict';
-
-  const WATCH_NAME = 'Anicrush';
-  const BASE_WATCH_URL = 'https://anicrush.to';
-  const BASE_API_URL = 'https://api.anicrush.to';
-  const FAVICON_URL =
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAiVQTFRFAAAAfFrNf1zRhF/UhWHZiGPdi2XfjmfjkWnolWvqlm7vmm/ymnDzdVTEeFbHe1nKflvOf1zSf1nTgFnXg1vbiGHfj2fkkWrolGzrl27vmW/xbU65cFG8c1PAdlXEc0/Ee1rLs57i0sbv0sTwsZjnhV7biWHgj2jlkmrplW3slm7uaEuya022bk+6ZkS5sZ/c////sJfniGDejWfikGnmkmvpZEesZkmwYkOvrp3X9/T7+fj99/T8nIDdhF7XiGPci2XgjmfjX0OlX0OoZ0uu+/r9e2DBZkO6bEi/c07Ie1fNe1bQgFvUhmHZiWTdWkCfVzugp5nOcla2Z0ezbk+5cFG9clLAdlTEcUzEybrqpYzdflrShGDWVDyZTzOWzsfi7+32VjakZkmvZUevaUqyaUe63dXwwLDmd1PKf1zQVTyZTDGTy8Xg8O32TzGdWz+hnH3jlHXcY0WtYUCxva7ick/DeljKTzWVn5DFaFKjm3zlt5b/uJf/k3Lce2S4ln/Ob0+/dlXDVDuYVDuZxKn9rIb7rIj6q4b80Lr9YUKxcVG9VTyZTjSVmYzAxaf/n3n2pYD5nHftoHrypYD4nnf20br/i3a+YkStaUuzbE22VTyZTTSTbE65oXn6i2feTjWPUDeRlW7pnnb2aEm0WT2hYUWpZEesZ0mwVTyZUzqWUjmVUTmUUjiUUTmVVTuYWT+fXEGiX0SmYkaqVTyZVTyYVz6cWkCgtQnzJwAAALd0Uk5TADHI+/////////vIMYL///////////////+CMf//////////////////Mcj////////////I+//////////////7//////////////////////////////////////////////////////////////////////////////////////////////////v/////////////////+8j////////////////IMf///////////zGC//+C14DaKQAAAKdJREFUeJxjZGBgRAJfGBgZeJEFGJ8xSjOiAW0wyQACEAEzIP7OwMDF+JUHIuDEyPiGQRTIOGYNEfBnZLzPoIRkRiwj40UDEOOkBeMpcyCdxch4xBYit5fBBSTAy7iDwRMssInBHyQgwbiWIQRoMSPjCobI02aM3feRTQSCWRcYDFEEVhxiYLBnZNzP4AQVYNi8nQEGvBgZvYC+WPHp430wX5GfL4IBAOpjIDeNvUQpAAAAAElFTkSuQmCC';
 
   async function waitForElement(selector) {
     let promiseResolve;
@@ -41,19 +34,19 @@
     return promise;
   }
 
-  function createButton() {
+  function createButton(config) {
     const rankings = document.querySelector('.rankings');
     const clone = rankings.firstElementChild.cloneNode(true);
     clone.href = '#';
 
     const icon = document.createElement('img');
-    icon.src = FAVICON_URL;
+    icon.src = config.faviconUrl;
     icon.className = 'icon svg-inline--fa fa-w-18 fa-xs';
     clone.querySelector('svg').replaceWith(icon);
 
     const text = clone.querySelector('.rank-text');
     text.style.textTransform = 'none';
-    text.innerText = `Watch on ${WATCH_NAME}`;
+    text.innerText = `Watch on ${config.name}`;
 
     rankings.insertBefore(clone, rankings.firstElementChild);
 
@@ -101,51 +94,66 @@
     return json.data.Media.mediaListEntry.progress;
   }
 
-  async function onWatchClick(event) {
-    event.preventDefault();
+  function onWatchClick(config) {
+    return async (event) => {
+      event.preventDefault();
 
-    const btn = event.currentTarget;
-    disableButton(btn);
+      const btn = event.currentTarget;
+      disableButton(btn);
 
-    const baseUrl = `${BASE_API_URL}/shared/v2/movie/list?limit=24&page=1`;
-    const title = getTitleForSearch();
-    const seasonData = getSeasonDataForSearch();
+      const title = getTitleForSearch();
+      const seasonData = getSeasonDataForSearch();
+      const animeProgress = await getAnimeProgress();
 
-    const response = await new Promise((resolve, reject) => {
-      GM_xmlhttpRequest({
-        method: 'GET',
-        url: `${baseUrl}&keyword=${title}&years=${seasonData.year}`,
-        headers: {
-          Accept: 'application/json, text/plain, */*',
-          Origin: 'https://anicrush.to',
-          Referer: 'https://anicrush.to/',
-          'x-site': 'anicrush',
-        },
-        onload: resolve,
-        onabort: reject,
-        onerror: reject,
-        ontimeout: reject,
-      });
-    });
-
-    const json = JSON.parse(response.responseText);
-    if (json.status === true) {
-      const result = json.result.movies[0];
-      let openUrl = `${BASE_WATCH_URL}/watch/${result.slug}.${result.id}`;
-      const progress = await getAnimeProgress();
-      if (progress > 0) {
-        openUrl += `?ep=${progress + 1}`;
+      const { ok, url, error } = await config.findLink(title, seasonData, animeProgress);
+      if (ok) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } else {
+        console.error('Watch Link Error', error);
       }
-      window.open(openUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      console.error('Watch Link Error', json);
-    }
 
-    enableButton(btn);
+      enableButton(btn);
+    };
   }
 
+  const CONFIG = {
+    anicrush: {
+      name: 'Anicrush',
+      baseUrl: 'https://anicrush.to',
+      faviconUrl: '',
+      async findLink(title, seasonData, animeProgress) {
+        const response = await new Promise((resolve, reject) => {
+          GM_xmlhttpRequest({
+            method: 'GET',
+            url: `https://api.anicrush.to/shared/v2/movie/list?limit=24&page=1&keyword=${title}&years=${seasonData.year}`,
+            headers: {
+              Accept: 'application/json, text/plain, */*',
+              Origin: 'https://anicrush.to',
+              Referer: 'https://anicrush.to/',
+              'x-site': 'anicrush',
+            },
+            onload: resolve,
+            onabort: reject,
+            onerror: reject,
+            ontimeout: reject,
+          });
+        });
+        const json = JSON.parse(response.responseText);
+        if (json.status === true) {
+          const result = json.result.movies[0];
+          let openUrl = `${this.baseUrl}/watch/${result.slug}.${result.id}`;
+          if (animeProgress > 0) {
+            openUrl += `?ep=${animeProgress + 1}`;
+          }
+          return { ok: true, url: openUrl };
+        }
+        return { ok: false, error: json };
+      },
+    },
+  };
+
   waitForElement('.rankings').then(() => {
-    const button = createButton();
-    button.onclick = onWatchClick;
+    const button = createButton(CONFIG.anicrush);
+    button.onclick = onWatchClick(CONFIG.anicrush);
   });
 })();
