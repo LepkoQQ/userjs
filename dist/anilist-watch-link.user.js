@@ -2,7 +2,7 @@
 // @name        AniList Watch Link
 // @description Add watch links to anime page
 // @namespace   http://lepko.net/
-// @version     1.2.0
+// @version     1.2.1
 // @run-at      document-start
 // @match       https://anilist.co/anime/*
 // @grant       GM_xmlhttpRequest
@@ -36,8 +36,10 @@
 
   function createButton(config) {
     const rankings = document.querySelector('.rankings');
-    const clone = rankings.firstElementChild.cloneNode(true);
+    const button = rankings.querySelector('a.ranking:not(.__watch-link)');
+    const clone = button.cloneNode(true);
     clone.href = '#';
+    clone.classList.add('__watch-link');
 
     const icon = document.createElement('img');
     icon.src = config.faviconUrl;
@@ -48,7 +50,7 @@
     text.style.textTransform = 'none';
     text.innerText = `Watch on ${config.name}`;
 
-    rankings.insertBefore(clone, rankings.firstElementChild);
+    rankings.insertBefore(clone, button);
 
     return clone;
   }
@@ -64,7 +66,11 @@
   }
 
   function getTitleForSearch() {
-    const title = document.querySelector('.header h1').innerText;
+    let title = document.querySelector('.header h1').innerText;
+    title = title
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z\s]/g, '');
     return encodeURIComponent(title).replaceAll('%20', '+');
   }
 
@@ -128,8 +134,8 @@
             url: `https://api.anicrush.to/shared/v2/movie/list?limit=24&page=1&keyword=${title}&years=${seasonData.year}`,
             headers: {
               Accept: 'application/json, text/plain, */*',
-              Origin: 'https://anicrush.to',
-              Referer: 'https://anicrush.to/',
+              Origin: this.baseUrl,
+              Referer: `${this.baseUrl}/`,
               'x-site': 'anicrush',
             },
             onload: resolve,
@@ -150,10 +156,50 @@
         return { ok: false, error: json };
       },
     },
+    gogoanime: {
+      name: 'Gogoanime',
+      baseUrl: 'https://anitaku.pe',
+      faviconUrl: '',
+      async findLink(title, seasonData, animeProgress) {
+        const response = await new Promise((resolve, reject) => {
+          GM_xmlhttpRequest({
+            method: 'GET',
+            url: `https://ajax.gogocdn.net/site/loadAjaxSearch?keyword=${title}&id=-1&link_web=${this.baseUrl}/`,
+            headers: {
+              Accept: 'application/json, text/plain, */*',
+              Origin: this.baseUrl,
+              Referer: `${this.baseUrl}/`,
+            },
+            onload: resolve,
+            onabort: reject,
+            onerror: reject,
+            ontimeout: reject,
+          });
+        });
+        const json = JSON.parse(response.responseText);
+        if (json.content) {
+          const template = document.createElement('template');
+          template.innerHTML = json.content;
+          const linkEl = template.content.querySelector('a.ss-title');
+          if (linkEl) {
+            let link = linkEl.href;
+            if (animeProgress > 0) {
+              link = link.replace('/category/', '/');
+              link += `-episode-${animeProgress + 1}`;
+            }
+            return { ok: true, url: link };
+          }
+        }
+        return { ok: false, error: json };
+      },
+    },
   };
 
   waitForElement('.rankings').then(() => {
     const button = createButton(CONFIG.anicrush);
     button.onclick = onWatchClick(CONFIG.anicrush);
+
+    const button2 = createButton(CONFIG.gogoanime);
+    button2.onclick = onWatchClick(CONFIG.gogoanime);
   });
 })();
