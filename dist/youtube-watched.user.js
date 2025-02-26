@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Youtube Watched Improvements LOCAL
+// @name         Youtube Watched Improvements
 // @description  Misc improvements to watched videos and subscription list
 // @namespace    https://lepko.net/
 // @version      0.0.1
