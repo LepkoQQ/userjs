@@ -42,9 +42,8 @@
               padding: 0;
             }
             #main-content #sharing-stage #stage {
-              max-width: initial;
-              width: 100%;
-              max-width: 100%;
+              width: 100% !important;
+              max-width: 100% !important;
             }
             #stage .vidyard-player-container,
             #stage [class^="vidyard-inner-container"] {
