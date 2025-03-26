@@ -44,6 +44,7 @@
             #main-content #sharing-stage #stage {
               max-width: initial;
               width: 100%;
+              max-width: 100%;
             }
             #stage .vidyard-player-container,
             #stage [class^="vidyard-inner-container"] {
