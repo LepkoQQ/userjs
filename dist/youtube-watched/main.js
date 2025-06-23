@@ -32,6 +32,41 @@
     });
   }
 
+  async function cleanUpOldDbEntries() {
+    if (!db) {
+      await openDatabase();
+    }
+
+    {
+      const transaction = db.transaction(storeName, 'readonly');
+      const store = transaction.objectStore(storeName);
+      const countRequest = store.count();
+      countRequest.onsuccess = (event) => {
+        logger.log('number of entries in store:', event.target.result);
+      };
+    }
+
+    {
+      const timeThreshold = Date.now() - 4 * 7 * 24 * 60 * 60 * 1000; // 4 weeks
+      logger.log('cleaning up entries older than', new Date(timeThreshold).toISOString());
+      const transaction = db.transaction(storeName, 'readwrite');
+      const store = transaction.objectStore(storeName);
+      const request = store.openCursor();
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          if (!cursor.value.timestamp || cursor.value.timestamp < timeThreshold) {
+            store.delete(cursor.key);
+            logger.log('deleted old entry', cursor.key);
+          }
+          cursor.continue();
+        } else {
+          logger.log('clean up completed');
+        }
+      };
+    }
+  }
+
   function onYtPageTypeChanged(event) {
     observer?.disconnect();
     observer = null;
@@ -61,7 +96,10 @@
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(storeName, 'readwrite');
       const store = transaction.objectStore(storeName);
-      const request = store.add({ id: videoId });
+      const request = store.add({
+        id: videoId,
+        timestamp: Date.now(),
+      });
 
       request.onsuccess = (event) => {
         logger.log('added to hidden list', videoId);
@@ -80,7 +118,7 @@
       const videoId = element?.data?.videoId;
       if (!videoId) {
         logger.log('no video id found');
-        resolve(false);
+        resolve({ hidden: false });
         return;
       }
 
@@ -90,7 +128,11 @@
 
       request.onsuccess = (event) => {
         const { result } = event.target;
-        resolve(!!result);
+        if (result) {
+          resolve({ hidden: true, data: result });
+        } else {
+          resolve({ hidden: false });
+        }
       };
 
       request.onerror = (event) => {
@@ -135,8 +177,8 @@
       }
 
       onEveryChildAdded(document.body, 'ytd-video-renderer', async (element) => {
-        const isHidden = await checkIfHidden(element);
-        if (isHidden) {
+        const result = await checkIfHidden(element);
+        if (result.hidden) {
           hideVideoElement(element);
         } else {
           addHideButton(element);
@@ -155,6 +197,10 @@
     pageManager.addEventListener('yt-page-data-updated', onYtPageDataUpdated);
 
     logger.log('events attached');
+
+    cleanUpOldDbEntries();
+
+    logger.log('called clean up');
   }
 
   function init(rootLogger) {
