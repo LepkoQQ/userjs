@@ -2,12 +2,12 @@
 // @name         Youtube Watched Improvements
 // @description  Misc improvements to watched videos and subscription list
 // @namespace    https://lepko.net/
-// @version      0.0.1
+// @version      0.0.2
 // @author       You
 // @run-at       document-start
 // @match        https://www.youtube.com/*
-// @require      https://raw.githubusercontent.com/LepkoQQ/userjs/f940b86a2ce17f596f09177f188df2148a9bc554/dist/utils/utils.js
-// @require      https://raw.githubusercontent.com/LepkoQQ/userjs/f940b86a2ce17f596f09177f188df2148a9bc554/dist/youtube-watched/main.js
+// @require      https://raw.githubusercontent.com/LepkoQQ/userjs/c96ae2f2f81c5361cb24939c5d82e297156a1ef0/dist/utils/utils.js
+// @require      https://raw.githubusercontent.com/LepkoQQ/userjs/c96ae2f2f81c5361cb24939c5d82e297156a1ef0/dist/youtube-watched/main.js
 // @grant        unsafeWindow
 // @grant        GM_addStyle
 // ==/UserScript==
