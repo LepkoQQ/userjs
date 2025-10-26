@@ -2,15 +2,16 @@
 // @name        AniList Watch Link
 // @description Add watch links to anime page
 // @namespace   http://lepko.net/
-// @version     1.2.2
+// @version     1.3.1
 // @run-at      document-start
 // @match       https://anilist.co/anime/*
+// @require     https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.1.0/fuse.min.js
 // @grant       GM_xmlhttpRequest
 // @grant       unsafeWindow
 // @nocompat    Chrome
 // ==/UserScript==
 
-/* global GM_xmlhttpRequest, unsafeWindow */
+/* global GM_xmlhttpRequest, unsafeWindow, Fuse */
 (function main() {
   'use strict';
 
@@ -68,11 +69,18 @@
   }
 
   function getTitleForSearch() {
-    let title = document.querySelector('.header h1').innerText;
-    title = title
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z\s]/g, '');
+    const dataSets = document.querySelectorAll('.sidebar .data-set');
+    const titleDataSet = Array.from(dataSets).filter((div) => div.querySelector('.type').innerText === 'Romaji')[0];
+    let title = '';
+    if (titleDataSet) {
+      title = titleDataSet.querySelector('.value').innerText;
+    } else {
+      title = document.querySelector('.header h1').innerText;
+      title = title
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z\s]/g, '');
+    }
     return encodeURIComponent(title).replaceAll('%20', '+');
   }
 
@@ -257,9 +265,65 @@
         return { ok: false, error: 'No results found' };
       },
     },
+    anigo: {
+      name: 'AniGo',
+      baseUrl: 'https://anigo.to',
+      faviconUrl: '',
+      async findLink(title, seasonData, animeProgress) {
+        const decodedTitle = decodeURIComponent(title.replaceAll('+', '%20'));
+
+        const response = await new Promise((resolve, reject) => {
+          GM_xmlhttpRequest({
+            method: 'GET',
+            url: `${this.baseUrl}/browser?keyword=${title}&status[]=releasing&status[]=completed&sort=release_date&season[]=${seasonData.season}&year[]=${seasonData.year}`,
+            headers: {
+              Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              Origin: this.baseUrl,
+              Referer: `${this.baseUrl}/`,
+            },
+            onload: resolve,
+            onabort: reject,
+            onerror: reject,
+            ontimeout: reject,
+          });
+        });
+
+        const template = document.createElement('template');
+        template.innerHTML = response.responseText;
+        const linkEls = template.content.querySelectorAll('.anilist .anicard a.title');
+        const linkObjects = Array.from(linkEls).map((linkEl) => {
+          return {
+            href: linkEl.getAttribute('href'),
+            title: linkEl.innerText.trim(),
+            titleJp: linkEl.dataset.jp?.trim() || '',
+          };
+        });
+
+        const fuse = new Fuse(linkObjects, {
+          includeScore: true,
+          keys: [
+            { name: 'title', weight: 0.5 },
+            { name: 'titleJp', weight: 1.0 },
+          ],
+        });
+        const result = fuse.search(decodedTitle, { limit: 1 })[0];
+        if (result && result.item) {
+          let openUrl = `${this.baseUrl}${result.item.href}`;
+          if (animeProgress > 0) {
+            openUrl += `#ep=${animeProgress + 1}`;
+          }
+          return { ok: true, url: openUrl };
+        }
+
+        return { ok: false, error: 'No results found' };
+      },
+    },
   };
 
   waitForElement('.rankings').then(() => {
+    const button4 = createButton(CONFIG.anigo);
+    button4.onclick = onWatchClick(CONFIG.anigo);
+
     const button3 = createButton(CONFIG.hianime);
     button3.onclick = onWatchClick(CONFIG.hianime);
 
