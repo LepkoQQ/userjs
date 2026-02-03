@@ -113,12 +113,24 @@
     });
   }
 
+  function getVideoIdFromElement(element) {
+    let videoId;
+
+    if (element?.data?.content?.lockupViewModel?.contentType === 'LOCKUP_CONTENT_TYPE_VIDEO') {
+      videoId = element.data.content.lockupViewModel?.contentId;
+    } else {
+      videoId = element?.data?.videoId;
+    }
+
+    return videoId;
+  }
+
   async function checkIfHidden(element) {
     return new Promise((resolve, reject) => {
-      const videoId = element?.data?.videoId;
+      const videoId = getVideoIdFromElement(element);
       if (!videoId) {
-        logger.log('no video id found');
-        resolve({ hidden: false });
+        // logger.log('no video id found', element);
+        resolve({ hidden: null });
         return;
       }
 
@@ -156,9 +168,9 @@
     button.classList.add('ext--yt-watched-hide-button');
     button.textContent = 'Hide';
     button.addEventListener('click', async () => {
-      const videoId = element?.data?.videoId;
+      const videoId = getVideoIdFromElement(element);
       if (!videoId) {
-        logger.log('no video id found');
+        logger.log('no video id found', element);
         return;
       }
       await addIdToHiddenList(videoId);
@@ -177,6 +189,17 @@
       }
 
       onEveryChildAdded(document.body, 'ytd-video-renderer', async (element) => {
+        const result = await checkIfHidden(element);
+        if (result.hidden != null) {
+          if (result.hidden) {
+            hideVideoElement(element);
+          } else {
+            addHideButton(element);
+          }
+        }
+      });
+
+      onEveryChildAdded(document.body, 'ytd-rich-item-renderer', async (element) => {
         const result = await checkIfHidden(element);
         if (result.hidden) {
           hideVideoElement(element);
@@ -214,11 +237,26 @@
         background: rgba(0, 0, 0, 0.66);
       }
 
+      ytd-rich-item-renderer yt-thumbnail-bottom-overlay-view-model yt-thumbnail-overlay-progress-bar-view-model .ytThumbnailOverlayProgressBarHostWatchedProgressBar {
+        height: 38px;
+        z-index: 0;
+        background: #000;
+        opacity: 0.75;
+      }
+
+      ytd-rich-item-renderer yt-thumbnail-bottom-overlay-view-model .ytThumbnailBottomOverlayViewModelBadgeContainer {
+        z-index: 1;
+      }
+
       ytd-video-renderer #overlays ytd-thumbnail-overlay-resume-playback-renderer #progress {
         background: rgba(255, 0, 0, 0.66);
       }
 
       ytd-item-section-renderer #contents ytd-reel-shelf-renderer {
+        display: none;
+      }
+
+      ytd-rich-section-renderer #content ytd-rich-shelf-renderer[is-shorts] {
         display: none;
       }
 
@@ -234,14 +272,39 @@
         cursor: pointer;
       }
 
+      ytd-rich-item-renderer .ext--yt-watched-hide-button {
+        top: auto;
+        bottom: 0;
+        margin: 8px;
+        padding: 1px 4px;
+        background-color: rgba(225, 0, 45, 0.9);
+        border-radius: 4px;
+        font-size: 1.2rem;
+        line-height: 1.8rem;
+        font-weight: 500;
+        text-transform: uppercase;
+      }
+
       .ext--yt-watched-hide-button:hover {
         background-color: rgba(64, 0, 0, 0.66);
+      }
+
+      ytd-rich-item-renderer .ext--yt-watched-hide-button:hover {
+        background-color: rgba(225, 0, 45, 0.6);
       }
 
       .ext--yt-watched-hidden {
         opacity: 0.1;
         max-height: 50px;
         overflow: hidden;
+      }
+
+      ytd-rich-item-renderer.ext--yt-watched-hidden {
+        max-height: 88px;
+      }
+
+      ytd-rich-item-renderer.ext--yt-watched-hidden .yt-lockup-view-model__content-image {
+        display: none;
       }
 
       ytd-item-section-renderer.ext--yt-watched-hidden ytd-shelf-renderer .grid-subheader {
