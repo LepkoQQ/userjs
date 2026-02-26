@@ -128,7 +128,7 @@ const _ = (function utils() {
     },
     addCSS(css) {
       const style = _.get('style#ext_css') || document.head.parentNode.insertBefore(_.create('style#ext_css'), document.head.nextSibling);
-      style.insertAdjacentHTML('beforeend', css);
+      style.textContent += css;
     },
     // UTILS
     toColor(string) {

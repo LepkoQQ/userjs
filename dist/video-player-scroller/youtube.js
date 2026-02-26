@@ -120,7 +120,11 @@
   //   }
   // }
 
-  if (context.vpsSite == null && (window.location.host.match(/\.youtube\.com$/) || window.location.host.match(/youtube\.googleapis\.com$/))) {
+  if (
+    context.vpsSite == null &&
+    ((window.location.host.match(/\.youtube\.com$/) && window.location.host !== 'accounts.youtube.com') ||
+      window.location.host.match(/youtube\.googleapis\.com$/))
+  ) {
     context.vpsSite = {
       init(logger) {
         LOGGER = logger.push('youtube');
