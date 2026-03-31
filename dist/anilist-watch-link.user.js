@@ -2,7 +2,7 @@
 // @name        AniList Watch Link
 // @description Add watch links to anime page
 // @namespace   http://lepko.net/
-// @version     1.3.1
+// @version     1.3.2
 // @run-at      document-start
 // @match       https://anilist.co/anime/*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.1.0/fuse.min.js
@@ -134,7 +134,7 @@
 
   const CONFIG = {
     anicrush: {
-      name: 'Anicrush',
+      name: 'anicrush',
       baseUrl: 'https://anicrush.to',
       faviconUrl: '',
       async findLink(title, seasonData, animeProgress) {
@@ -166,105 +166,6 @@
         return { ok: false, error: json };
       },
     },
-    gogoanime: {
-      name: 'Gogoanime',
-      baseUrl: 'https://anitaku.pe',
-      faviconUrl: '',
-      async findLink(title, seasonData, animeProgress) {
-        const response = await new Promise((resolve, reject) => {
-          GM_xmlhttpRequest({
-            method: 'GET',
-            url: `https://ajax.gogocdn.net/site/loadAjaxSearch?keyword=${title}&id=-1&link_web=${this.baseUrl}/`,
-            headers: {
-              Accept: 'application/json, text/plain, */*',
-              Origin: this.baseUrl,
-              Referer: `${this.baseUrl}/`,
-            },
-            onload: resolve,
-            onabort: reject,
-            onerror: reject,
-            ontimeout: reject,
-          });
-        });
-        const json = JSON.parse(response.responseText);
-        if (json.content) {
-          const template = document.createElement('template');
-          template.innerHTML = json.content;
-          const linkEl = template.content.querySelector('a.ss-title');
-          if (linkEl) {
-            let link = linkEl.href;
-            if (animeProgress > 0) {
-              link = link.replace('/category/', '/');
-              link += `-episode-${animeProgress + 1}`;
-            }
-            return { ok: true, url: link };
-          }
-        }
-        return { ok: false, error: json };
-      },
-    },
-    hianime: {
-      name: 'HiAnime',
-      baseUrl: 'https://hianime.to',
-      faviconUrl: '',
-      async findLink(title, seasonData, animeProgress) {
-        const response = await new Promise((resolve, reject) => {
-          GM_xmlhttpRequest({
-            method: 'GET',
-            url: `${this.baseUrl}/ajax/search/suggest?keyword=${title}`,
-            headers: {
-              Accept: 'application/json, text/plain, */*',
-              Origin: this.baseUrl,
-              Referer: `${this.baseUrl}/`,
-            },
-            onload: resolve,
-            onabort: reject,
-            onerror: reject,
-            ontimeout: reject,
-          });
-        });
-        const json = JSON.parse(response.responseText);
-        if (json.status && json.html) {
-          const template = document.createElement('template');
-          template.innerHTML = json.html;
-          const linkEl = template.content.querySelector('.nav-item');
-          if (linkEl) {
-            const hrefPath = linkEl.getAttribute('href').split('?')[0];
-            let openUrl = `${this.baseUrl}/watch${hrefPath}`;
-            if (animeProgress > 0) {
-              const animeId = hrefPath.split('-').at(-1);
-              const response2 = await new Promise((resolve, reject) => {
-                GM_xmlhttpRequest({
-                  method: 'GET',
-                  url: `${this.baseUrl}/ajax/v2/episode/list/${animeId}`,
-                  headers: {
-                    Accept: 'application/json, text/plain, */*',
-                    Origin: this.baseUrl,
-                    Referer: `${openUrl}/`,
-                  },
-                  onload: resolve,
-                  onabort: reject,
-                  onerror: reject,
-                  ontimeout: reject,
-                });
-              });
-              const json2 = JSON.parse(response2.responseText);
-              const template2 = document.createElement('template');
-              if (json2.status && json2.html) {
-                template2.innerHTML = json2.html;
-                const episodeEl = template2.content.querySelector(`.ep-item[data-number="${animeProgress + 1}"]`);
-                if (episodeEl) {
-                  const episodeId = episodeEl.dataset.id;
-                  openUrl += `?ep=${episodeId}`;
-                }
-              }
-            }
-            return { ok: true, url: openUrl };
-          }
-        }
-        return { ok: false, error: 'No results found' };
-      },
-    },
     anigo: {
       name: 'AniGo',
       baseUrl: 'https://anigo.to',
@@ -290,12 +191,14 @@
 
         const template = document.createElement('template');
         template.innerHTML = response.responseText;
-        const linkEls = template.content.querySelectorAll('.anilist .anicard a.title');
+        const linkEls = template.content.querySelectorAll('.aniCard .aniData a');
         const linkObjects = Array.from(linkEls).map((linkEl) => {
+          const xData = linkEl.querySelector('h6')?.getAttribute('x-data');
+          const jpTitle = xData?.match(/JTitle\(`([^`]+)`\)/)?.[1] || '';
           return {
             href: linkEl.getAttribute('href'),
             title: linkEl.innerText.trim(),
-            titleJp: linkEl.dataset.jp?.trim() || '',
+            titleJp: jpTitle.trim(),
           };
         });
 
@@ -321,16 +224,10 @@
   };
 
   waitForElement('.rankings').then(() => {
-    const button4 = createButton(CONFIG.anigo);
-    button4.onclick = onWatchClick(CONFIG.anigo);
-
-    const button3 = createButton(CONFIG.hianime);
-    button3.onclick = onWatchClick(CONFIG.hianime);
-
-    const button = createButton(CONFIG.anicrush);
-    button.onclick = onWatchClick(CONFIG.anicrush);
-
-    const button2 = createButton(CONFIG.gogoanime);
-    button2.onclick = onWatchClick(CONFIG.gogoanime);
+    Object.keys(CONFIG).forEach((key) => {
+      const configValue = CONFIG[key];
+      const button = createButton(configValue);
+      button.onclick = onWatchClick(configValue);
+    });
   });
 })();
