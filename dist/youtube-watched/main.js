@@ -260,6 +260,10 @@
         display: none;
       }
 
+      ytd-rich-section-renderer #content ytd-rich-shelf-renderer[has-expansion-button] {
+        display: none;
+      }
+
       .ext--yt-watched-hide-button {
         position: absolute;
         top: 0;
@@ -303,7 +307,8 @@
         max-height: 88px;
       }
 
-      ytd-rich-item-renderer.ext--yt-watched-hidden .yt-lockup-view-model__content-image {
+      ytd-rich-item-renderer.ext--yt-watched-hidden .yt-lockup-view-model__content-image,
+      ytd-rich-item-renderer.ext--yt-watched-hidden .ytLockupViewModelContentImage {
         display: none;
       }
 
