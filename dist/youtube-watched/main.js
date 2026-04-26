@@ -1,4 +1,4 @@
-/* global _:false, GM_addStyle:false */
+/* global _:false, GM_addStyle:false, GM_xmlhttpRequest:false, GM_getValue:false, GM_setValue:false */
 (function main(context, window) {
   'use strict';
 
@@ -6,65 +6,173 @@
   let pageManager;
   let observer;
 
-  const dbName = 'ytWatchedExtDb';
-  const storeName = 'hiddenIdsStore';
-  let db;
+  const API_BASE_URL = 'https://api.tuhaz.zip/valstore';
+  const API_GROUP = 'youtube-watched';
 
-  function openDatabase() {
+  let API_TOKEN = GM_getValue('apiToken');
+  if (!API_TOKEN) {
+    // eslint-disable-next-line no-alert
+    API_TOKEN = window.prompt('Enter API token:');
+    if (API_TOKEN) {
+      GM_setValue('apiToken', API_TOKEN);
+    } else {
+      throw new Error('API token is required');
+    }
+  }
+
+  function apiHeaders() {
+    return {
+      Authorization: `Bearer ${API_TOKEN}`,
+      'Content-Type': 'application/json',
+    };
+  }
+
+  function gmFetch({ method, url, body }) {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(dbName, 1);
-
-      request.onupgradeneeded = (event) => {
-        db = event.target.result;
-        db.createObjectStore(storeName, { keyPath: 'id' });
-      };
-
-      request.onsuccess = (event) => {
-        db = event.target.result;
-        logger.log('database opened');
-        resolve(db);
-      };
-
-      request.onerror = (event) => {
-        logger.log('database error', event.target.errorCode);
-        reject(new Error(`Database error: ${event.target.errorCode}`));
-      };
+      GM_xmlhttpRequest({
+        method,
+        url,
+        headers: apiHeaders(),
+        data: body,
+        onload(response) {
+          if (response.status < 200 || response.status >= 300) {
+            reject(new Error(`Request failed: ${response.status} ${response.statusText}`));
+            return;
+          }
+          try {
+            resolve(JSON.parse(response.responseText));
+          } catch (err) {
+            reject(new Error(`Failed to parse response: ${response.responseText}`));
+          }
+        },
+        onerror(response) {
+          reject(new Error(`Request failed: ${response.status} ${response.statusText}`));
+        },
+      });
     });
   }
 
-  async function cleanUpOldDbEntries() {
-    if (!db) {
-      await openDatabase();
+  async function apiPut(videoId) {
+    const url = `${API_BASE_URL}/${API_GROUP}/${encodeURIComponent(videoId)}`;
+    const json = await gmFetch({ method: 'PUT', url, body: JSON.stringify({ timestamp: Date.now() }) });
+    logger.log('apiPut', videoId, json);
+    return json;
+  }
+
+  async function apiBatchCheck(videoIds) {
+    const CHUNK_SIZE = 50;
+    const merged = { found: {}, missing: [] };
+
+    for (let i = 0; i < videoIds.length; i += CHUNK_SIZE) {
+      const chunk = videoIds.slice(i, i + CHUNK_SIZE);
+      const keys = chunk.map(encodeURIComponent).join(',');
+      const url = `${API_BASE_URL}/${API_GROUP}?keys=${keys}`;
+      // eslint-disable-next-line no-await-in-loop
+      const json = await gmFetch({ method: 'GET', url });
+      logger.log('apiBatchCheck chunk', chunk, json);
+      Object.assign(merged.found, json.data?.found ?? {});
+      merged.missing.push(...(json.data?.missing ?? []));
     }
 
-    {
-      const transaction = db.transaction(storeName, 'readonly');
-      const store = transaction.objectStore(storeName);
-      const countRequest = store.count();
-      countRequest.onsuccess = (event) => {
-        logger.log('number of entries in store:', event.target.result);
-      };
+    return merged; // { found: {...}, missing: [...] }
+  }
+
+  const pendingQueue = new Map(); // videoId -> element[]
+  let debounceTimer = null;
+
+  async function hideVideoElement(element) {
+    const parent = element.closest('ytd-item-section-renderer');
+    if (parent && parent.querySelectorAll('ytd-video-renderer').length === 1) {
+      parent.classList.add('ext--yt-watched-hidden');
+    } else {
+      element.classList.add('ext--yt-watched-hidden');
+    }
+  }
+
+  function getVideoIdFromElement(element) {
+    let videoId;
+
+    if (element?.data?.content?.lockupViewModel?.contentType === 'LOCKUP_CONTENT_TYPE_VIDEO') {
+      videoId = element.data.content.lockupViewModel?.contentId;
+    } else {
+      videoId = element?.data?.videoId;
     }
 
-    {
-      const timeThreshold = Date.now() - 4 * 7 * 24 * 60 * 60 * 1000; // 4 weeks
-      logger.log('cleaning up entries older than', new Date(timeThreshold).toISOString());
-      const transaction = db.transaction(storeName, 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.openCursor();
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-        if (cursor) {
-          if (!cursor.value.timestamp || cursor.value.timestamp < timeThreshold) {
-            store.delete(cursor.key);
-            logger.log('deleted old entry', cursor.key);
-          }
-          cursor.continue();
-        } else {
-          logger.log('clean up completed');
+    return videoId;
+  }
+
+  function addHideButton(element) {
+    const button = document.createElement('button');
+    button.classList.add('ext--yt-watched-hide-button');
+    button.textContent = 'Hide';
+    button.addEventListener('click', async () => {
+      const videoId = getVideoIdFromElement(element);
+      if (!videoId) {
+        logger.log('no video id found', element);
+        return;
+      }
+      await apiPut(videoId);
+
+      hideVideoElement(element);
+    });
+    element.appendChild(button);
+  }
+
+  async function flushPendingQueue() {
+    debounceTimer = null;
+    if (pendingQueue.size === 0) return;
+
+    const entries = Array.from(pendingQueue.entries());
+    pendingQueue.clear();
+
+    const videoIds = entries.map(([id]) => id);
+    let result;
+    try {
+      result = await apiBatchCheck(videoIds);
+    } catch (err) {
+      logger.log('apiBatchCheck error', err);
+
+      // Replace pending outline with red on failure
+      // eslint-disable-next-line no-restricted-syntax
+      for (const [, elements] of entries) {
+        // eslint-disable-next-line no-restricted-syntax
+        for (const element of elements) {
+          element.classList.remove('ext--yt-watched-pending');
+          element.classList.add('ext--yt-watched-error');
         }
-      };
+      }
+      return;
     }
+
+    const found = result?.found ?? {};
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const [videoId, elements] of entries) {
+      // eslint-disable-next-line no-restricted-syntax
+      for (const element of elements) {
+        element.classList.remove('ext--yt-watched-pending');
+        if (found[videoId]) {
+          hideVideoElement(element);
+        } else {
+          addHideButton(element);
+        }
+      }
+    }
+  }
+
+  function queueVideoElement(element) {
+    const videoId = getVideoIdFromElement(element);
+    if (!videoId) return;
+
+    element.classList.add('ext--yt-watched-pending');
+    if (pendingQueue.has(videoId)) {
+      pendingQueue.get(videoId).push(element);
+    } else {
+      pendingQueue.set(videoId, [element]);
+    }
+
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(flushPendingQueue, 300);
   }
 
   function onYtPageTypeChanged(event) {
@@ -92,120 +200,16 @@
     observer.observe(parent, { childList: true, subtree: true });
   }
 
-  async function addIdToHiddenList(videoId) {
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeName, 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.add({
-        id: videoId,
-        timestamp: Date.now(),
-      });
-
-      request.onsuccess = (event) => {
-        logger.log('added to hidden list', videoId);
-        resolve(event);
-      };
-
-      request.onerror = (event) => {
-        logger.log('error adding to hidden list', event.target.errorCode);
-        reject(new Error(`Error adding to hidden list: ${event.target.errorCode}`));
-      };
-    });
-  }
-
-  function getVideoIdFromElement(element) {
-    let videoId;
-
-    if (element?.data?.content?.lockupViewModel?.contentType === 'LOCKUP_CONTENT_TYPE_VIDEO') {
-      videoId = element.data.content.lockupViewModel?.contentId;
-    } else {
-      videoId = element?.data?.videoId;
-    }
-
-    return videoId;
-  }
-
-  async function checkIfHidden(element) {
-    return new Promise((resolve, reject) => {
-      const videoId = getVideoIdFromElement(element);
-      if (!videoId) {
-        // logger.log('no video id found', element);
-        resolve({ hidden: null });
-        return;
-      }
-
-      const transaction = db.transaction(storeName, 'readonly');
-      const store = transaction.objectStore(storeName);
-      const request = store.get(videoId);
-
-      request.onsuccess = (event) => {
-        const { result } = event.target;
-        if (result) {
-          resolve({ hidden: true, data: result });
-        } else {
-          resolve({ hidden: false });
-        }
-      };
-
-      request.onerror = (event) => {
-        logger.log('error checking if hidden', event.target.errorCode);
-        reject(new Error(`Error checking if hidden: ${event.target.errorCode}`));
-      };
-    });
-  }
-
-  async function hideVideoElement(element) {
-    const parent = element.closest('ytd-item-section-renderer');
-    if (parent && parent.querySelectorAll('ytd-video-renderer').length === 1) {
-      parent.classList.add('ext--yt-watched-hidden');
-    } else {
-      element.classList.add('ext--yt-watched-hidden');
-    }
-  }
-
-  function addHideButton(element) {
-    const button = document.createElement('button');
-    button.classList.add('ext--yt-watched-hide-button');
-    button.textContent = 'Hide';
-    button.addEventListener('click', async () => {
-      const videoId = getVideoIdFromElement(element);
-      if (!videoId) {
-        logger.log('no video id found', element);
-        return;
-      }
-      await addIdToHiddenList(videoId);
-
-      hideVideoElement(element);
-    });
-    element.appendChild(button);
-  }
-
   async function onYtPageDataUpdated(event) {
     if (event?.detail?.pageType === 'subscriptions') {
       logger.log('subscriptions page');
 
-      if (!db) {
-        await openDatabase();
-      }
-
-      onEveryChildAdded(document.body, 'ytd-video-renderer', async (element) => {
-        const result = await checkIfHidden(element);
-        if (result.hidden != null) {
-          if (result.hidden) {
-            hideVideoElement(element);
-          } else {
-            addHideButton(element);
-          }
-        }
+      onEveryChildAdded(document.body, 'ytd-video-renderer', (element) => {
+        queueVideoElement(element);
       });
 
-      onEveryChildAdded(document.body, 'ytd-rich-item-renderer', async (element) => {
-        const result = await checkIfHidden(element);
-        if (result.hidden) {
-          hideVideoElement(element);
-        } else {
-          addHideButton(element);
-        }
+      onEveryChildAdded(document.body, 'ytd-rich-item-renderer', (element) => {
+        queueVideoElement(element);
       });
     } else {
       logger.log('got yt-page-data-updated', event);
@@ -221,9 +225,7 @@
 
     logger.log('events attached');
 
-    cleanUpOldDbEntries();
-
-    logger.log('called clean up');
+    logger.log('page manager ready');
   }
 
   function init(rootLogger) {
@@ -295,6 +297,14 @@
 
       ytd-rich-item-renderer .ext--yt-watched-hide-button:hover {
         background-color: rgba(225, 0, 45, 0.6);
+      }
+
+      .ext--yt-watched-pending {
+        outline: 2px solid orange;
+      }
+
+      .ext--yt-watched-error {
+        outline: 2px solid red;
       }
 
       .ext--yt-watched-hidden {

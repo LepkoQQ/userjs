@@ -10,6 +10,9 @@
 // @require      https://raw.githubusercontent.com/LepkoQQ/userjs/b0d795d9adeab7dce8594a2969a8335e465847c3/dist/youtube-watched/main.js
 // @grant        unsafeWindow
 // @grant        GM_addStyle
+// @grant        GM_xmlhttpRequest
+// @grant        GM_getValue
+// @grant        GM_setValue
 // ==/UserScript==
 
 /* globals _:false, ytWatchedInit:false */
