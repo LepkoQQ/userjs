@@ -2,7 +2,7 @@
 // @name        AniList Watch Link
 // @description Add watch links to anime page
 // @namespace   http://lepko.net/
-// @version     1.3.2
+// @version     1.3.3
 // @run-at      document-start
 // @match       https://anilist.co/anime/*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.1.0/fuse.min.js
@@ -133,20 +133,19 @@
   }
 
   const CONFIG = {
-    anicrush: {
-      name: 'anicrush',
-      baseUrl: 'https://anicrush.to',
-      faviconUrl: '',
+    animenexus: {
+      name: 'Anime Nexus',
+      baseUrl: 'https://anime.nexus',
       async findLink(title, seasonData, animeProgress) {
+        const decodedTitle = decodeURIComponent(title.replaceAll('+', '%20'));
         const response = await new Promise((resolve, reject) => {
           GM_xmlhttpRequest({
             method: 'GET',
-            url: `https://api.anicrush.to/shared/v2/movie/list?limit=24&page=1&keyword=${title}&years=${seasonData.year}`,
+            url: `https://api.anime.nexus/api/anime/shows?search=${title}`,
             headers: {
               Accept: 'application/json, text/plain, */*',
               Origin: this.baseUrl,
               Referer: `${this.baseUrl}/`,
-              'x-site': 'anicrush',
             },
             onload: resolve,
             onabort: reject,
@@ -155,72 +154,95 @@
           });
         });
         const json = JSON.parse(response.responseText);
-        if (json.status === true) {
-          const result = json.result.movies[0];
-          let openUrl = `${this.baseUrl}/watch/${result.slug}.${result.id}`;
-          if (animeProgress > 0) {
-            openUrl += `?ep=${animeProgress + 1}`;
+        if (json.data && json.data.length > 0) {
+          const fuse = new Fuse(json.data, {
+            includeScore: true,
+            keys: [
+              { name: 'name', weight: 0.5 },
+              { name: 'name_alt', weight: 1.0 },
+            ],
+          });
+          const result = fuse.search(decodedTitle, { limit: 1 })[0];
+          if (result && result.item) {
+            let openUrl = `${this.baseUrl}/series/${result.item.id}/${result.item.slug}`;
+            if (animeProgress > 0) {
+              const response2 = await new Promise((resolve, reject) => {
+                GM_xmlhttpRequest({
+                  method: 'GET',
+                  url: `https://api.anime.nexus/api/anime/details/episodes?id=${result.item.id}&page=1&perPage=50&order=asc&fillers=true&recaps=true`,
+                  headers: {
+                    Accept: 'application/json, text/plain, */*',
+                    Origin: this.baseUrl,
+                    Referer: `${this.baseUrl}/`,
+                  },
+                  onload: resolve,
+                  onabort: reject,
+                  onerror: reject,
+                  ontimeout: reject,
+                });
+              });
+              const json2 = JSON.parse(response2.responseText);
+              const ep = json2.data.find((e) => e.number === animeProgress + 1);
+              if (ep) {
+                openUrl = `${this.baseUrl}/watch/${ep.id}/${ep.slug}`;
+              }
+            }
+            return { ok: true, url: openUrl };
           }
-          return { ok: true, url: openUrl };
         }
         return { ok: false, error: json };
       },
     },
-    anigo: {
-      name: 'AniGo',
-      baseUrl: 'https://anigo.to',
-      faviconUrl: '',
-      async findLink(title, seasonData, animeProgress) {
-        const decodedTitle = decodeURIComponent(title.replaceAll('+', '%20'));
-
-        const response = await new Promise((resolve, reject) => {
-          GM_xmlhttpRequest({
-            method: 'GET',
-            url: `${this.baseUrl}/browser?keyword=${title}&status[]=releasing&status[]=completed&sort=release_date&season[]=${seasonData.season}&year[]=${seasonData.year}`,
-            headers: {
-              Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              Origin: this.baseUrl,
-              Referer: `${this.baseUrl}/`,
-            },
-            onload: resolve,
-            onabort: reject,
-            onerror: reject,
-            ontimeout: reject,
-          });
-        });
-
-        const template = document.createElement('template');
-        template.innerHTML = response.responseText;
-        const linkEls = template.content.querySelectorAll('.aniCard .aniData a');
-        const linkObjects = Array.from(linkEls).map((linkEl) => {
-          const xData = linkEl.querySelector('h6')?.getAttribute('x-data');
-          const jpTitle = xData?.match(/JTitle\(`([^`]+)`\)/)?.[1] || '';
-          return {
-            href: linkEl.getAttribute('href'),
-            title: linkEl.innerText.trim(),
-            titleJp: jpTitle.trim(),
-          };
-        });
-
-        const fuse = new Fuse(linkObjects, {
-          includeScore: true,
-          keys: [
-            { name: 'title', weight: 0.5 },
-            { name: 'titleJp', weight: 1.0 },
-          ],
-        });
-        const result = fuse.search(decodedTitle, { limit: 1 })[0];
-        if (result && result.item) {
-          let openUrl = `${this.baseUrl}${result.item.href}`;
-          if (animeProgress > 0) {
-            openUrl += `#ep=${animeProgress + 1}`;
-          }
-          return { ok: true, url: openUrl };
-        }
-
-        return { ok: false, error: 'No results found' };
-      },
-    },
+    // anigo: {
+    //   name: 'AniGo',
+    //   baseUrl: 'https://anigo.to',
+    //   async findLink(title, seasonData, animeProgress) {
+    //     const decodedTitle = decodeURIComponent(title.replaceAll('+', '%20'));
+    //     const response = await new Promise((resolve, reject) => {
+    //       GM_xmlhttpRequest({
+    //         method: 'GET',
+    //         url: `${this.baseUrl}/browser?keyword=${title}&status[]=releasing&status[]=completed&sort=release_date&season[]=${seasonData.season}&year[]=${seasonData.year}`,
+    //         headers: {
+    //           Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    //           Origin: this.baseUrl,
+    //           Referer: `${this.baseUrl}/`,
+    //         },
+    //         onload: resolve,
+    //         onabort: reject,
+    //         onerror: reject,
+    //         ontimeout: reject,
+    //       });
+    //     });
+    //     const template = document.createElement('template');
+    //     template.innerHTML = response.responseText;
+    //     const linkEls = template.content.querySelectorAll('.aniCard .aniData a');
+    //     const linkObjects = Array.from(linkEls).map((linkEl) => {
+    //       const xData = linkEl.querySelector('h6')?.getAttribute('x-data');
+    //       const jpTitle = xData?.match(/JTitle\(`([^`]+)`\)/)?.[1] || '';
+    //       return {
+    //         href: linkEl.getAttribute('href'),
+    //         title: linkEl.innerText.trim(),
+    //         titleJp: jpTitle.trim(),
+    //       };
+    //     });
+    //     const fuse = new Fuse(linkObjects, {
+    //       includeScore: true,
+    //       keys: [
+    //         { name: 'title', weight: 0.5 },
+    //         { name: 'titleJp', weight: 1.0 },
+    //       ],
+    //     });
+    //     const result = fuse.search(decodedTitle, { limit: 1 })[0];
+    //     if (result && result.item) {
+    //       let openUrl = `${this.baseUrl}${result.item.href}`;
+    //       if (animeProgress > 0) {
+    //         openUrl += `#ep=${animeProgress + 1}`;
+    //       }
+    //       return { ok: true, url: openUrl };
+    //     }
+    //     return { ok: false, error: 'No results found' };
+    //   },
+    // },
   };
 
   waitForElement('.rankings').then(() => {
