@@ -2,7 +2,7 @@
 // @name        AniList Watch Link
 // @description Add watch links to anime page
 // @namespace   http://lepko.net/
-// @version     1.3.3
+// @version     1.3.4
 // @run-at      document-start
 // @match       https://anilist.co/anime/*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.1.0/fuse.min.js
@@ -133,6 +133,69 @@
   }
 
   const CONFIG = {
+    anikage: {
+      name: 'Anikage',
+      baseUrl: 'https://anikage.cc',
+      async findLink(title, seasonData, animeProgress) {
+        const decodedTitle = decodeURIComponent(title.replaceAll('+', '%20'));
+        const searchUrl = `${this.baseUrl}/api/media/anime/browse`;
+        const searchQuery = new URLSearchParams({
+          q: decodedTitle,
+          sort: 'popularity',
+          page: '1',
+          limit: '25',
+          adult: 'true',
+          yearMin: seasonData.year,
+          yearMax: seasonData.year,
+          season: seasonData.season.toUpperCase(),
+        });
+        const response = await new Promise((resolve, reject) => {
+          GM_xmlhttpRequest({
+            method: 'GET',
+            url: `${searchUrl}?${searchQuery.toString()}`,
+            headers: {
+              Accept: '*/*',
+              Origin: this.baseUrl,
+              Referer: `${this.baseUrl}/`,
+            },
+            onload: resolve,
+            onabort: reject,
+            onerror: reject,
+            ontimeout: reject,
+          });
+        });
+        const json = JSON.parse(response.responseText);
+        if (json.data && json.data.length > 0) {
+          const item = json.data[0];
+          let openUrl = `${this.baseUrl}/anime/info/${item.slug}`;
+          if (animeProgress > 0) {
+            const episodesUrl = `${this.baseUrl}/api/media/anime/${item.slug}/episodes`;
+            const response2 = await new Promise((resolve, reject) => {
+              GM_xmlhttpRequest({
+                method: 'GET',
+                url: episodesUrl,
+                headers: {
+                  Accept: '*/*',
+                  Origin: this.baseUrl,
+                  Referer: `${this.baseUrl}/`,
+                },
+                onload: resolve,
+                onabort: reject,
+                onerror: reject,
+                ontimeout: reject,
+              });
+            });
+            const json2 = JSON.parse(response2.responseText);
+            const ep = json2.find((e) => e.episodeInSeason === animeProgress + 1);
+            if (ep) {
+              openUrl = `${this.baseUrl}/anime/watch/${item.slug}?ep=${ep.episodeInSeason}`;
+            }
+          }
+          return { ok: true, url: openUrl };
+        }
+        return { ok: false, error: json };
+      },
+    },
     animenexus: {
       name: 'Anime Nexus',
       baseUrl: 'https://anime.nexus',
