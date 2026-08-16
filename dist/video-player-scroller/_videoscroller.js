@@ -234,6 +234,11 @@ const VideoScroller = (function createVideoScroller() {
       window.addEventListener('keydown', this.onKeyDown, true);
       window.addEventListener('keyup', this.onKeyUp, true);
 
+      // setup subtitles
+      if (this.options.setupSubtitles) {
+        this.options.setupSubtitles(this.player);
+      }
+
       this.options.logger.log('created scroller');
     }
 
