@@ -92,10 +92,20 @@
   function getVideoIdFromElement(element) {
     let videoId;
 
-    if (element?.data?.content?.lockupViewModel?.contentType === 'LOCKUP_CONTENT_TYPE_VIDEO') {
-      videoId = element.data.content.lockupViewModel?.contentId;
+    let dataObj;
+    if (typeof element?.data === 'object') {
+      dataObj = element.data;
+    } else if (typeof element?.componentProps?.data === 'function') {
+      dataObj = element.componentProps.data();
     } else {
-      videoId = element?.data?.videoId;
+      logger.log('no data object found for element', element);
+      return null;
+    }
+
+    if (dataObj?.content?.lockupViewModel?.contentType === 'LOCKUP_CONTENT_TYPE_VIDEO') {
+      videoId = dataObj.content.lockupViewModel?.contentId;
+    } else {
+      videoId = dataObj?.videoId;
     }
 
     return videoId;
@@ -108,7 +118,7 @@
     button.addEventListener('click', async () => {
       const videoId = getVideoIdFromElement(element);
       if (!videoId) {
-        logger.log('no video id found', element);
+        logger.log('no video id found (hide button click)', element);
         return;
       }
       await apiPut(videoId);
@@ -162,7 +172,10 @@
 
   function queueVideoElement(element) {
     const videoId = getVideoIdFromElement(element);
-    if (!videoId) return;
+    if (!videoId) {
+      logger.log('no video id found (queue video element)', element);
+      return;
+    }
 
     element.classList.add('ext--yt-watched-pending');
     if (pendingQueue.has(videoId)) {
