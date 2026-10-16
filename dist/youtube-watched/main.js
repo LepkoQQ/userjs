@@ -338,6 +338,18 @@
       ytd-item-section-renderer.ext--yt-watched-hidden ytd-shelf-renderer .grid-subheader {
         display: none;
       }
+
+      [page-subtype="subscriptions"] ytd-rich-grid-renderer #contents {
+        --ytd-rich-grid-items-per-row: 6;
+
+        & > * {
+          order: 0;
+        }
+
+        & > ytd-rich-item-renderer:not(.ext--yt-watched-hidden) {
+          order: -1;
+        }
+      }
     `);
 
     _.waitFor('YTD-PAGE-MANAGER').then((element) => {
